@@ -232,14 +232,14 @@
 
     (cond
       ;; TODO: this is ugly!
-      (and (isinstance f Expression) (= (get f 0) 'define)) (do
+      (and (isinstance f Expression) (= (get f 0) 'define) (isinstance (get f 1) Symbol)) (do
         (setv [_ target value] f)
         (setv name (str target))    ;; ugly
 
         (assert (isinstance value Integer))
         (setv (get unit.globals name) (int value))
         )
-      (and (isinstance f Expression) (= (get f 0) 'defun)) (do
+      (and (isinstance f Expression) (= (get f 0) 'define) (isinstance (get f 1) Expression)) (do
         ;; handle defun
         (setv [_ prototype #* body] f)
         (setv [name #* parameters] prototype)

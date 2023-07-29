@@ -1,0 +1,23 @@
+Aspect                  Common Lisp             Scheme/Racket           Clojure               Hy                    STAK
+==================================================================================================================================
+Function/variable       separate                unified                 unified               unified               unified
+namespaces
+
+Scoping                 lexical                 lexical                 ?                     Python                #yolo
+
+Function definition     (defun f (a b) ...)     (define (f a b) ...)    (defn f [a b] ...)    (defn f [a b] ...)    see Scheme
+Lambda                  (lambda (a b) ...)      (lambda (a b) ...)      (fn [a b] ...)        (fn [a b] ...)        n/a
+
+Variable definition     (defvar foo 3)          (define foo 3)          (def foo 3)           n/a (use setv)        see Scheme
+Variable update         setq                    set!                    n/a (immutable)       setv                  see Scheme
+
+Global variables        *global-var*            global-var              ?                     global-var            see Scheme
+(convention)
+
+If
+
+When/Unless
+
+For-loop
+
+While-loop

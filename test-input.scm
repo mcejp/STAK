@@ -1,4 +1,4 @@
-(defun (main)
+(define (main)
   (set-video-mode W H)
 
   (define x 100)

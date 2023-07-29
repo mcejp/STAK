@@ -1,4 +1,4 @@
-(defun (draw-splash color)
+(define (draw-splash color)
   (fill-rect color 0 0 W H)
 
   (define i 0)
@@ -7,7 +7,7 @@
     (set! i (+ i 1)))
   )
 
-(defun (main)
+(define (main)
   (set-video-mode W H)
 
   (define color 0)
