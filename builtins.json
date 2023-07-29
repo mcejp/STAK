@@ -1,0 +1,10 @@
+{
+    "fill-rect": {"id": 0, "argc": 5},
+    "pause-frames": {"id": 1, "argc": 1},
+    "set-video-mode": {"id": 2, "argc": 2},
+    "<=": {"id": 3, "argc": 2},
+    "+": {"id": 4, "argc": 2},
+    "*": {"id": 5, "argc": 2},
+    "key-held?": {"id": 6, "argc": 1},
+    "-": {"id": 7, "argc": 2}
+}

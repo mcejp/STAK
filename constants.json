@@ -1,0 +1,11 @@
+{
+	"COLOR:WHITE": 15,
+	"W": 320,
+	"H": 240,
+
+	"KEY:UP": 0,
+    "KEY:DOWN": 1,
+    "KEY:LEFT": 2,
+    "KEY:RIGHT": 3,
+    "KEY:A": 4
+}

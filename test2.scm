@@ -1,0 +1,21 @@
+(define *color* 0)
+
+(defun (draw-splash)
+  (fill-rect *color* 0 0 W H)
+  )
+
+(defun (main)
+  (set-video-mode W H)
+
+  (draw-splash)
+  (pause-frames 10)
+  (set! *color* 5)
+  (draw-splash)
+  (pause-frames 10)
+  (set! *color* 10)
+  (draw-splash)
+  (pause-frames 10)
+  (set! *color* 15)
+  (draw-splash)
+  (pause-frames 10)
+  )
