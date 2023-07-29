@@ -25,6 +25,7 @@
   ;; VERY ugly
   ;; maybe can use sexpdata instead of Hy Reader for this.. but that's pretty dumb too
   ;; https://docs.hylang.org/en/stable/model_patterns.html seems done for this
+  ;; see also https://github.com/hylang/hy/discussions/2462
   (defn #^ staticmethod from-form [form]
     (assert (isinstance form Expression))
     (setv [_function name f1 f2 f3 f4] form)

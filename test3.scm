@@ -11,7 +11,7 @@
   (set-video-mode W H)
 
   (define color 0)
-  (while (<= color 15)
+  (while (<= color 255)
     (draw-splash color)
     (pause-frames 10)
     (set! color (+ color 1))
