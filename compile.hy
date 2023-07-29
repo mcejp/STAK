@@ -1,8 +1,13 @@
+(import
+  functools [partial])
 (import argparse [ArgumentParser])
 (import dataclasses [dataclass])
 (import json)
 (import sys)
 
+(import
+  funcparserlib.parser [maybe many]
+  hy.model-patterns *)
 (import hy)
 (import hy.models [Expression Integer Symbol])
 (require hyrule.control [lif unless])
@@ -30,6 +35,12 @@
     instr)
 
   )
+
+(defn maybe-parse [form syntax]
+  (try
+    (.parse syntax form)
+    (except [err NoParseError]
+      None)))
 
 (defn compile-getconst [ctx value]
   (if (= value 0)
@@ -102,10 +113,15 @@
     (when last-statement-produced-result
       (ctx.emit 'drop))
 
+    (setv maybe-parse* (partial maybe-parse form))
+
+    ;; TODO: can do something like cond for maybe-parse with custom unpacking
+    ;;       https://github.com/hylang/hy/blob/39be258387c3ced1ee0ca5b1376917d078970f6a/hy/core/macros.hy#L6
+
     (cond
-      ;; (define ...) form
-      (and (isinstance form Expression) (= (get form 0) 'define)) (do
-        (setv [_ target value] form)
+      ;; (define <variable> <value>)
+      (setx parsed (maybe-parse* (whole [(sym "define") SYM FORM]))) (do
+        (setv [target value] parsed)
         (setv name (str target))    ;; ugly
 
         (compile-expression ctx value)
@@ -123,9 +139,9 @@
 
         (setv last-statement-produced-result False))
 
-      ;; (set! ...) form
-      (and (isinstance form Expression) (= (get form 0) 'set!)) (do
-        (setv [_ target value] form)
+      ;; (set! <variable> <value>)
+      (setx parsed (maybe-parse* (whole [(sym "set!") SYM FORM]))) (do
+        (setv [target value] parsed)
         (setv name (str target))    ;; ugly
 
         (compile-expression ctx value)
@@ -140,9 +156,10 @@
 
         (setv last-statement-produced-result False))
 
-      ;; when (should just be a macro tbh)
-      (and (isinstance form Expression) (= (get form 0) 'when)) (do
-        (setv [_ cond #* body] form)
+      ;; (when <cond> <body> ...)
+      ;; this should probably just be a macro
+      (setx parsed (maybe-parse* (whole [(sym "when") FORM (many FORM)]))) (do
+        (setv [cond body] parsed)
 
         ;; TODO: how to make this not suck?
 
@@ -163,9 +180,9 @@
         (setv last-statement-produced-result False)
         )
 
-      ;; while
-      (and (isinstance form Expression) (= (get form 0) 'while)) (do
-        (setv [_ cond #* body] form)
+      ;; (while <cond> <body> ...)
+      (setx parsed (maybe-parse* (whole [(sym "while") FORM (many FORM)]))) (do
+        (setv [cond body] parsed)
 
         ;; TODO: how to make this not suck?
 
@@ -230,19 +247,20 @@
   (for [f forms]
     ;(print f)
 
+    (setv maybe-parse* (partial maybe-parse f))
+    (setv INTEGER-LITERAL (some (fn [x] (isinstance x Integer))))
+
     (cond
-      ;; TODO: this is ugly!
-      (and (isinstance f Expression) (= (get f 0) 'define) (isinstance (get f 1) Symbol)) (do
-        (setv [_ target value] f)
+      ;; (define <variable> <value>)
+      (setx parsed (maybe-parse* (whole [(sym "define") SYM INTEGER-LITERAL]))) (do
+        (setv [target value] parsed)
         (setv name (str target))    ;; ugly
 
-        (assert (isinstance value Integer))
         (setv (get unit.globals name) (int value))
         )
-      (and (isinstance f Expression) (= (get f 0) 'define) (isinstance (get f 1) Expression)) (do
-        ;; handle defun
-        (setv [_ prototype #* body] f)
-        (setv [name #* parameters] prototype)
+      ;; (define (<name> <args> ...) <body> ...)
+      (setx parsed (maybe-parse* (whole [(sym "define") (pexpr SYM (many SYM)) (many FORM)]))) (do
+        (setv [[name parameters] body] parsed)
 
         ;; from the declared parameters, build initial list of local variables
         (setv locals (dfor [i param] (enumerate parameters) (str param) i))
