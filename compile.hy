@@ -1,5 +1,6 @@
 (import
-  functools [partial])
+  functools [partial]
+  os)
 (import argparse [ArgumentParser])
 (import dataclasses [dataclass])
 (import json)
@@ -11,9 +12,10 @@
 (import hy)
 (import hy.models [Expression Integer Symbol])
 (require hyrule.control [lif unless])
-(import hyrule.hypprint [pprint])
 
-(import models [CompiledFunction Unit])
+(import
+  models [CompiledFunction Unit]
+  write [write])
 
 (defclass [dataclass] CompilationContext []
   #^ object builtin-constants
@@ -260,7 +262,8 @@
         )
       ;; (define (<name> <args> ...) <body> ...)
       (setx parsed (maybe-parse* (whole [(sym "define") (pexpr SYM (many SYM)) (many FORM)]))) (do
-        (setv [[name parameters] body] parsed)
+        (setv [[target parameters] body] parsed)
+        (setv name (str target))    ;; ugly
 
         ;; from the declared parameters, build initial list of local variables
         (setv locals (dfor [i param] (enumerate parameters) (str param) i))
@@ -288,7 +291,9 @@
     ))
 
 
-(with [f (open args.output "wt")]
-  (f.write (cut (hy.repr (unit.to-sexpr)) 1 None))
+(with [f (open (+ args.output ".tmp") "wt")]
+  (f.write (write (unit.to-sexpr)))
   (f.write "\n")
   )
+
+(os.rename (+ args.output ".tmp") args.output)
