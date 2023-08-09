@@ -1,9 +1,10 @@
 Aspect                  Common Lisp             Scheme/Racket           Clojure               Hy                    STAK
-==================================================================================================================================
+========================================================================================================================================
 Function/variable       separate                unified                 unified               unified               unified
 namespaces
 
-Scoping                 lexical                 lexical                 ?                     Python                #yolo
+Scoping                 lexical                 lexical                 ?                     like Python           just 2 scopes:
+                                                                                                                    global and function
 
 Function definition     (defun f (a b) ...)     (define (f a b) ...)    (defn f [a b] ...)    (defn f [a b] ...)    see Scheme
 Lambda                  (lambda (a b) ...)      (lambda (a b) ...)      (fn [a b] ...)        (fn [a b] ...)        n/a
