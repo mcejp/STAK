@@ -232,7 +232,7 @@
 
 (setv parser (ArgumentParser))
 (parser.add-argument "input")
-(parser.add-argument "-o" :dest "output")
+(parser.add-argument "-o" :dest "output" :required True)
 (setv args (parser.parse-args))
 
 (with [f (open "constants.json")]

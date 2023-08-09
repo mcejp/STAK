@@ -15,7 +15,7 @@
 
 (setv parser (ArgumentParser))
 (parser.add-argument "inputs" :nargs "+")
-(parser.add-argument "-o" :dest "output")
+(parser.add-argument "-o" :dest "output" :required True)
 (setv args (parser.parse-args))
 
 (with [f (open "builtins.json")]
@@ -184,10 +184,10 @@
       (f.write (struct.pack "<BBHHxx" func.argc func.num-locals func.bytecode-offset func.constants-offset)))
     ;; constans
     (for [value program.constants]
-      (f.write (struct.pack "<I" value)))
+      (f.write (struct.pack "<h" value)))
     ;; globals
     (for [value program.globals]
-      (f.write (struct.pack "<I" value)))
+      (f.write (struct.pack "<h" value)))
     ;; bytecode
     (for [[opcode #* operands] program.bytecode]
       ;(f.write (bytes [(get OPCODE-NUMBERS opcode) #* operands])))
