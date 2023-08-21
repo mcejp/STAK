@@ -172,18 +172,26 @@ void stak_exec(Module const* mod, Thread* thr) {
             break;
 
         case OP_RET:
-            TR(("  ret\n"));
+            op1 = bc[thr->pc++];    // retc
+            TR(("  ret %d\n", op1));
 
-            ret_val = POP();
-            thr->sp = thr->sp - CURR_FUNC.num_locals - CURR_FUNC.argc;
+            // TODO: stop abusing ret_val as a temporary, the compiler is not so dumb
+            // at this point: thr->sp == thr->fp + argc + nloc + retc
+            // rightmost:   [thr->sp - 1]    => [thr->sp - nloc - argc - retc + retc - 1]
+            // ...
+            // leftmost:    [thr->sp - retc] => [thr->sp - nloc - argc - retc]
+            for (ret_val = 0; ret_val < op1; ret_val++) {
+                thr->sp--;
+                stack[thr->sp - CURR_FUNC.num_locals - CURR_FUNC.argc] = stack[thr->sp];
+            }
+
+            thr->sp = thr->sp - CURR_FUNC.num_locals - CURR_FUNC.argc + op1;
 
             if (thr->frame == 0) {
                 printf("  return from main -> %d\n", ret_val);
                 thr->terminated = true;
                 return;
             }
-
-            PUSH(ret_val);
 
             // restore fp & pc
             thr->frame--;

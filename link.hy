@@ -38,7 +38,7 @@
 
 (setv global-ids {})
 (setv function-ids {})
-(setv all-functions [])
+(setv all-functions {})
 
 (setv program (Program :bytecode []
                        :constants []
@@ -52,7 +52,7 @@
 
     (setv function-index (len all-functions))
     (setv (get function-ids f.name) function-index)
-    (all-functions.append f)
+    (setv (get all-functions f.name) f)
     )
   (for [#(g value) (unit.globals.items)]
     (assert (not-in g global-ids))
@@ -69,21 +69,29 @@
 (defn error [message]
   (raise (Exception f"error: {message}")))
 
-(for [f all-functions]
+(for [f (all-functions.values)]
   (defn resolve [insn]
     (cond
       ;; call
       (= (get insn 0) 'call) (do
-        (setv [_ name argc] insn)
+        (setv [_ name argc retc] insn)
+
+        (defn check-retc [produces]
+          (unless (= produces retc)
+            (error f"{retc} results were expected, but function '{name}' produces {produces}")))
+
         (cond
           (in name builtin-functions) (do
             (setv info (get builtin-functions name))
             (setv argc-expect (get info "argc"))
             (unless (= argc argc-expect)
               (error f"External function '{name}' expects {argc-expect} arguments, but {argc} were passed"))
+            (check-retc (get info "retc"))
             ['call:ext (get info "id")]
             )
-          (in name function-ids) ['call:func (get function-ids name) argc]
+          (in name function-ids) (do
+            (check-retc (. (get all-functions name) retc))
+            ['call:func (get function-ids name) argc])
           True (raise (Exception f"unresolved function {name}"))
           ))
       ;; getglobal/setglobal
@@ -99,7 +107,7 @@
 
 ;; expand jump offsets to bytes
 
-(for [f all-functions]
+(for [f (all-functions.values)]
   (defn resolve [i insn]
     (cond
       ;; getglobal/setglobal
@@ -131,7 +139,7 @@
 
 (setv bc-pos 0)
 
-(for [f all-functions]
+(for [f (all-functions.values)]
   ;; 1 byte per opcode and each operand
   (setv func-body-len (sum (gfor insn f.body (len insn))))
 

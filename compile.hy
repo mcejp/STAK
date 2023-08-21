@@ -57,15 +57,21 @@
         )
       (finally (ctx.emit 'getconst index)))))
 
-(defn compile-expression [ctx expr]
+;; returns nothing
+(defn compile-expression [ctx expr [expected-values 1]]
   (setv builtin-constants ctx.builtin-constants)
   (setv unit ctx.unit)
   (setv function ctx.function)
   (setv output ctx.output)
 
+  (defn produces-values [count]
+    (when (!= expected-values count)
+      (ctx.error f"Expected {expected-values} values, but form produces {count}" expr)))
+
   (cond
-    (isinstance expr Integer)
-      (compile-getconst ctx (int expr))
+    (isinstance expr Integer) (do
+      (produces-values 1)
+      (compile-getconst ctx (int expr)))
 
     (isinstance expr Expression) (do
       ;; function call
@@ -75,11 +81,13 @@
       (for [arg args]
         (compile-expression ctx arg)
         )
-      (ctx.emit 'call (str name) (len args))
+      (ctx.emit 'call (str name) (len args) expected-values)
       )
 
     ;; symbol (constant, global, local variable)
     (isinstance expr Symbol) (do
+      (produces-values 1)
+
       (setv name (str expr))    ;; ugly
 
       ;; builtin constant with this name exists?
@@ -101,18 +109,18 @@
     )
   )
 
-;; returns true if something is left over on the stack
+;; returns number of values left over on the stack
 (defn compile-statements [ctx statement-list]
   (setv builtin-constants ctx.builtin-constants)
   (setv unit ctx.unit)
   (setv function ctx.function)
   (setv output ctx.output)
 
-  (setv last-statement-produced-result False)
+  (setv num-values-on-stack False)
 
   (for [form statement-list]
     ;; discard any result of previous statement
-    (when last-statement-produced-result
+    (for [i (range num-values-on-stack)]
       (ctx.emit 'drop))
 
     (setv maybe-parse* (partial maybe-parse form))
@@ -139,7 +147,29 @@
         (setv (get ctx.locals name) (len ctx.locals))
         (ctx.emit 'setlocal (get ctx.locals name))
 
-        (setv last-statement-produced-result False))
+        (setv num-values-on-stack 0))
+
+      ;; (define <var1> <var2> ... <value>)
+      (setx parsed (maybe-parse* (whole [(sym "define") (many SYM) FORM]))) (do
+        (setv [targets value] parsed)
+
+        (compile-expression ctx value :expected-values (len targets))
+
+        (for [target (reversed targets)]
+          (setv name (str target))    ;; ugly
+
+          ;; local?
+          (cond
+            (in name ctx.locals) (ctx.error f"variable already defined" target)
+            ;; global?
+            (in name unit.globals) (ctx.error f"definition shadows global variable" target)
+            )
+
+          ;; define new local & pop the value into it
+          (setv (get ctx.locals name) (len ctx.locals))
+          (ctx.emit 'setlocal (get ctx.locals name)))
+
+        (setv num-values-on-stack 0))
 
       ;; (set! <variable> <value>)
       (setx parsed (maybe-parse* (whole [(sym "set!") SYM FORM]))) (do
@@ -156,7 +186,16 @@
           ;;
           True (ctx.error f"undefined variable" target))
 
-        (setv last-statement-produced-result False))
+        (setv num-values-on-stack 0))
+
+      ;; (values <value> ...)
+      (setx parsed (maybe-parse* (whole [(sym "values") (many FORM)]))) (do
+        (setv values parsed)
+
+        (for [expr values]
+          (compile-expression ctx expr))
+
+        (setv num-values-on-stack (len values)))
 
       ;; (when <cond> <body> ...)
       ;; this should probably just be a macro
@@ -173,13 +212,13 @@
         (compile-expression ctx cond)
         (setv jz (ctx.emit 'jz None))
         (setv after-jz (len output))
-        (setv last-statement-produced-result
+        (setv num-values-on-stack
           (compile-statements ctx body))
-        (when last-statement-produced-result
+        (for [i (range num-values-on-stack)]
           (ctx.emit 'drop))
         (setv (get jz 1) (- (len output) after-jz))
 
-        (setv last-statement-produced-result False)
+        (setv num-values-on-stack 0)
         )
 
       ;; (while <cond> <body> ...)
@@ -199,37 +238,38 @@
         (compile-expression ctx cond)
         (setv jz (ctx.emit 'jz None))
         (setv after-jz (len output))
-        (setv last-statement-produced-result
+        (setv num-values-on-stack
           (compile-statements ctx body))
-        (when last-statement-produced-result
+        (for [i (range num-values-on-stack)]
           (ctx.emit 'drop))
         (setv end (+ (len output) 1))
         (ctx.emit 'jmp (- begin end))
         (setv (get jz 1) (- end after-jz))
 
-        (setv last-statement-produced-result False)
+        (setv num-values-on-stack 0)
         )
 
       True (do
         ;; compile expression
         (compile-expression ctx form)
-        (setv last-statement-produced-result True)
-        )
+        (setv num-values-on-stack 1))
       )
     )
 
-  last-statement-produced-result
+  num-values-on-stack
   )
 
 (defn compile-function-body [ctx body]
-  (setv last-statement-produced-result
+  (setv num-values-on-stack
     (compile-statements ctx body))
 
-  (unless last-statement-produced-result
+  (unless num-values-on-stack
     ;; make sure we're returning something
-    (ctx.emit 'zero))
+    (ctx.emit 'zero)
+    (setv num-values-on-stack 1))
 
-  (ctx.emit 'ret))
+  (ctx.emit 'ret num-values-on-stack)
+  num-values-on-stack)
 
 
 (setv parser (ArgumentParser))
@@ -270,6 +310,7 @@
 
         (setv function (CompiledFunction :name name
                                          :argc (len parameters)
+                                         :retc None   ;; don't know yet at this point
                                          :constants []
                                          :num-locals 0
                                          :body None))
@@ -280,7 +321,7 @@
                                       :locals locals
                                       :output []
                                       :unit unit))
-        (compile-function-body ctx body)
+        (setv function.retc (compile-function-body ctx body))
         (setv function.body ctx.output)
         (setv function.num-locals (- (len ctx.locals) (len parameters)))
 

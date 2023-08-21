@@ -3,9 +3,6 @@
 (define m21 0)  (define m22 64) (define m23 0)  (define m24 0)
 (define m31 0)  (define m32 0)  (define m33 64) (define m34 0)
 
-;; projection results
-(define out-x 0) (define out-y 0)
-
 
 (define (main)
   (set-video-mode W H)
@@ -78,12 +75,10 @@
 ;; matrix values must be max +/- 64
 ;; and we shift 6 bits down
 (define (line color x1 y1 z1 x2 y2 z2)
-  (project x1 y1 z1)
-  (define xx1 out-x)
-  (define yy1 out-y)
-  (project x2 y2 z2)
+  (define xx1 yy1 (project x1 y1 z1))
+  (define xx2 yy2 (project x2 y2 z2))
 
-  (draw-line color xx1 yy1 out-x out-y))
+  (draw-line color xx1 yy1 xx2 yy2))
 
 
 (define (project x y z)
@@ -110,5 +105,5 @@
   (set! sx (/ (* sx 128) (>> sz 1)))
   (set! sy (/ (* sy 128) (>> sz 1)))
 
-  (set! out-x (+ sx (>> W 1)))
-  (set! out-y (+ sy (>> H 1))))
+  (values (+ sx (>> W 1))
+          (+ sy (>> H 1))))

@@ -8,6 +8,7 @@
 (defclass [dataclass] CompiledFunction []
   #^ str name
   #^ int argc
+  #^ int retc     ;; number of values returned
   #^ list constants
   #^ int num-locals
   #^ object body
@@ -28,7 +29,7 @@
   ;; see also https://github.com/hylang/hy/discussions/2462
   (defn #^ staticmethod from-form [form]
     (assert (isinstance form Expression))
-    (setv [_function name f1 f2 f3 f4] form)
+    (setv [_function name f1 retc* f2 f3 f4] form)
     (assert (= _function 'function))
     (assert (isinstance name String))
 
@@ -36,6 +37,11 @@
     (setv [_argc argc] f1)
     (assert (= _argc 'argc))
     (assert (isinstance argc Integer))
+
+    (assert (isinstance retc* Expression))
+    (setv [_retc retc] retc*)
+    (assert (= _retc 'retc))
+    (assert (isinstance retc Integer))
 
     (assert (isinstance f2 Expression))
     (setv [_constants #* constants] f2)
@@ -52,6 +58,7 @@
 
     (CompiledFunction :name (str name)
                     :argc (int argc)
+                    :retc (int retc)
                     :constants (lfor c constants (int c))
                     :num-locals (int num-locals)
                     :body (lfor insn body (CompiledFunction.clean insn))
@@ -62,6 +69,7 @@
   (defn to-sexpr [self]
     (Expression ['function (String self.name)
            (Expression ['argc self.argc])
+           (Expression ['retc self.retc])
            (Expression ['constants #* self.constants])
            (Expression ['num-locals self.num-locals])
            (Expression ['body #* (gfor instr self.body (Expression instr))])
