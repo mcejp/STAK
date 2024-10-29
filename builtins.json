@@ -11,5 +11,6 @@
     ">>": {"id": 9, "argc": 2, "retc": 1},
     "sin": {"id": 10, "argc": 1, "retc": 1},
     "draw-line": {"id": 11, "argc": 5, "retc": 1},
-    "/": {"id": 12, "argc": 2, "retc": 1}
+    "/": {"id": 12, "argc": 2, "retc": 1},
+    "=": {"id": 13, "argc": 2, "retc": 1}
 }
