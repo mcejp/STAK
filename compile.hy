@@ -7,8 +7,8 @@
 (import sys)
 
 (import
-  funcparserlib.parser [maybe many]
-  hy.model-patterns *)
+  funcparserlib.parser [maybe many some]
+  hy.model-patterns [NoParseError pexpr sym whole FORM SYM])
 (import hy)
 (import hy.models [Expression Integer Symbol])
 (require hyrule.control [lif unless])
