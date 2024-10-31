@@ -300,6 +300,12 @@
 
         (setv (get unit.globals name) (int value))
         )
+      ;; (define <variable> <constant>)
+      (setx parsed (maybe-parse* (whole [(sym "define") SYM SYM]))) (do
+        (setv [target constant] parsed)
+        (setv name (str target))    ;; ugly
+
+        (setv (get unit.globals name) (get builtin-constants (str constant))))
       ;; (define (<name> <args> ...) <body> ...)
       (setx parsed (maybe-parse* (whole [(sym "define") (pexpr SYM (many SYM)) (many FORM)]))) (do
         (setv [[target parameters] body] parsed)
