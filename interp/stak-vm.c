@@ -159,16 +159,18 @@ void stak_exec(Module const* mod, Thread* thr) {
             break;
 
         case OP_JMP:
-            op1 = bc[thr->pc++];    // distance
-            TR(("  jmp %+d\n", op1));
-            thr->pc += op1;
+            op1 = bc[thr->pc++];    // distance LSB
+            op2 = bc[thr->pc++];    // distance MSB
+            TR(("  jmp %+d\n", (op2 << 8 | (uint8_t)op1)));
+            thr->pc += (op2 << 8 | (uint8_t)op1);
             break;
 
         case OP_JZ:
-            op1 = bc[thr->pc++];    // distance
-            TR(("  jz %+d\n", op1));
+            op1 = bc[thr->pc++];    // distance LSB
+            op2 = bc[thr->pc++];    // distance MSB
+            TR(("  jz %+d\n", (op2 << 8 | (uint8_t)op1)));
             if (POP() == 0) {
-                thr->pc += op1;
+                thr->pc += (op2 << 8 | (uint8_t)op1);
             }
             break;
 

@@ -107,6 +107,13 @@
 
 ;; expand jump offsets to bytes
 
+(defn instruction-length [insn]
+  ;; 1 byte per opcode and each operand
+  ;; except for branches where the operand is 2 bytes
+  (if (in (get insn 0) #{'jmp 'jz})
+    3
+    (len insn)))
+
 (for [f (all-functions.values)]
   (defn resolve [i insn]
     (cond
@@ -119,7 +126,7 @@
         (setv end (+ start dist))
 
         (defn block-length [block]
-          (sum (gfor insn block (len insn))))
+          (sum (gfor insn block (instruction-length insn))))
 
         (if (>= end start)
           (setv dist-bytes (block-length (cut f.body start end)))
@@ -140,8 +147,8 @@
 (setv bc-pos 0)
 
 (for [f (all-functions.values)]
-  ;; 1 byte per opcode and each operand
-  (setv func-body-len (sum (gfor insn f.body (len insn))))
+  (setv func-body-len
+        (sum (gfor insn f.body (instruction-length insn))))
 
   (setv f* (LinkedFunction :name f.name
                            :argc f.argc
@@ -199,8 +206,13 @@
     ;; bytecode
     (for [[opcode #* operands] program.bytecode]
       ;(f.write (bytes [(get OPCODE-NUMBERS opcode) #* operands])))
-      (for [b [(get OPCODE-NUMBERS opcode) #* operands]]
-        (f.write (struct.pack "b" b))))
+      (if (in opcode #{'jmp 'jz})
+        (do
+          ;; branch instructions have a 16-bit offset operand
+          (f.write (struct.pack "b" (get OPCODE-NUMBERS opcode)))
+          (f.write (struct.pack "h" #* operands)))
+        (for [b [(get OPCODE-NUMBERS opcode) #* operands]]
+          (f.write (struct.pack "b" b)))))
   )
 
   (os.rename (+ args.output ".tmp") args.output))
