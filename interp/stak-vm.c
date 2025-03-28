@@ -135,6 +135,8 @@ void stak_exec(Module const* mod, Thread* thr) {
             BUILTIN_5(11, draw_line, "draw-line");
             BUILTIN_BIN_OP(12, /, "/");
             BUILTIN_BIN_OP(13, ==, "=");
+            BUILTIN_BIN_OP(14, >, ">");
+            BUILTIN_BIN_OP(15, &&, "and");
             default:
                 printf("  unhandled, sorry\n");
                 exit(0);
