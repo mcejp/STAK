@@ -1,7 +1,6 @@
 (import
   functools [partial]
   os)
-(import argparse [ArgumentParser])
 (import dataclasses [dataclass])
 (import json)
 (import sys)
@@ -11,7 +10,7 @@
   hy.model-patterns [NoParseError pexpr sym whole FORM SYM])
 (import hy)
 (import hy.models [Expression Integer Symbol])
-(require hyrule.control [lif unless])
+(require hyrule.control [defmain lif unless])
 
 (import
   models [CompiledFunction Unit]
@@ -271,19 +270,7 @@
   (ctx.emit 'ret num-values-on-stack)
   num-values-on-stack)
 
-
-(setv parser (ArgumentParser))
-(parser.add-argument "input")
-(parser.add-argument "-o" :dest "output" :required True)
-(setv args (parser.parse-args))
-
-(with [f (open "constants.json")]
-    (setv builtin-constants (json.load f))
-    )
-
-(with [f (open args.input)]
-  (setv forms (hy.read-many f))
-
+(defn compile-unit [builtin-constants filename forms]
   (setv unit (Unit :globals {} :functions []))
 
   (for [f forms]
@@ -322,7 +309,7 @@
                                          :body None))
 
         (setv ctx (CompilationContext :builtin-constants builtin-constants
-                                      :filename (str args.input)
+                                      :filename filename
                                       :function function
                                       :locals locals
                                       :output []
@@ -335,12 +322,30 @@
         )
       True (raise (Exception f"unhandled form {f}"))
       )
-    ))
+    )
 
+  unit)
 
-(with [f (open (+ args.output ".tmp") "wt")]
-  (f.write (write (unit.to-sexpr)))
-  (f.write "\n")
+(defmain []
+  (import argparse [ArgumentParser])
+
+  (setv parser (ArgumentParser))
+  (parser.add-argument "input")
+  (parser.add-argument "-o" :dest "output" :required True)
+  (setv args (parser.parse-args))
+
+  (with [f (open "constants.json")]
+    (setv builtin-constants (json.load f)))
+
+  (with [f (open args.input)]
+    (setv forms (hy.read-many f))
+
+    (setv unit (compile-unit builtin-constants (str args.input) forms)))
+
+  (with [f (open (+ args.output ".tmp") "wt")]
+    (f.write (write (unit.to-sexpr)))
+    (f.write "\n")
+    )
+
+  (os.rename (+ args.output ".tmp") args.output)
   )
-
-(os.rename (+ args.output ".tmp") args.output)
