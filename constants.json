@@ -2,7 +2,7 @@
 	"COLOR:BLACK": 0,
 	"COLOR:WHITE": 15,
 	"W": 320,
-	"H": 240,
+	"H": 200,
 
 	"KEY:UP": 0,
     "KEY:DOWN": 1,

@@ -3,7 +3,7 @@
 
   (define i 0)
   (while (<= i 15)
-    (fill-rect i (* i 18) (* i 13) 48 44)
+    (fill-rect i (* i 18) (* i 10) 48 48)
     (set! i (+ i 1)))
   )
 

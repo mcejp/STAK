@@ -7,6 +7,11 @@
 static SDL_Window* window;
 static SDL_Surface* screenSurface;
 
+enum { CANVAS_W = 320 };
+enum { CANVAS_H = 200 };
+enum { WINDOW_W = 640 };
+enum { WINDOW_H = 480 };
+
 enum {
     KEY_UP,
     KEY_DOWN,
@@ -40,7 +45,7 @@ void periph_init(void) {
     window = SDL_CreateWindow(
             "STAK VM",
             SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
-            320, 240,
+            WINDOW_W, WINDOW_H,
             SDL_WINDOW_SHOWN
             );
 
@@ -49,7 +54,12 @@ void periph_init(void) {
         exit(-1);
     }
 
-    screenSurface = SDL_GetWindowSurface(window);
+    // Create an off-screen surface for the canvas
+    screenSurface = SDL_CreateRGBSurface(0, CANVAS_W, CANVAS_H, 32, 0, 0, 0, 0);
+    if (!screenSurface) {
+        fprintf(stderr, "Off-screen surface could not be created: %s\n", SDL_GetError());
+        exit(-1);
+    }
 }
 
 int draw_line(Thread* thr, int color, int x1, int y1, int x2, int y2) {
@@ -266,9 +276,15 @@ void frame_start(void) {
 }
 
 void frame_end(void) {
-    if (window) {
+    if (window && screenSurface) {
+        SDL_Surface* windowSurface = SDL_GetWindowSurface(window);
+
+        // Scale the off-screen canvas to fill the window
+        SDL_Rect destRect = { 0, 0, WINDOW_W, WINDOW_H };
+        SDL_BlitScaled(screenSurface, NULL, windowSurface, &destRect);
         SDL_UpdateWindowSurface(window);
-        SDL_Delay(1000/60);
+
+        SDL_Delay(1000 / 60);
     }
 }
 
