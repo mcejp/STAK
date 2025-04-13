@@ -3,8 +3,6 @@
 (define m21 0)  (define m22 64) (define m23 0)
 
 (define (main)
-  (set-video-mode W H)
-
   (define speed 4)
   (define angle 0)
 

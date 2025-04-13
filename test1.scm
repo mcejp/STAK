@@ -3,7 +3,6 @@
   )
 
 (define (main)
-  (set-video-mode W H)
   (draw-splash)
   (pause-frames 100)
   )

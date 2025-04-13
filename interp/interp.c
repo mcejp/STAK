@@ -41,6 +41,8 @@ int main(int argc, char** argv) {
     // thr.frames[0].pc = mod.functions[h.main_func_idx].bytecode_offset;
     thr.frame = 0;
 
+    periph_init();
+
     while (!thr.terminated) {
         frame_start();
 

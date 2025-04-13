@@ -8,8 +8,6 @@
   )
 
 (define (main)
-  (set-video-mode W H)
-
   (define color 0)
   (while (<= color 255)
     (draw-splash color)

@@ -1,6 +1,4 @@
 (define (main)
-  (set-video-mode W H)
-
   (define x 100)
   (define y 100)
   (define speed 4)

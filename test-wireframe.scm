@@ -5,8 +5,6 @@
 
 
 (define (main)
-  (set-video-mode W H)
-
   (define speed 4)
   (define angle 0)
 

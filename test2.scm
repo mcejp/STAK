@@ -5,8 +5,6 @@
   )
 
 (define (main)
-  (set-video-mode W H)
-
   (draw-splash)
   (pause-frames 10)
   (set! *color* 5)

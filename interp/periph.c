@@ -31,6 +31,27 @@ static void swap_points(int* x1, int* y1, int* x2, int* y2) {
     *y2 = y;
 }
 
+void periph_init(void) {
+    if (SDL_Init(SDL_INIT_VIDEO) < 0) {
+        fprintf(stderr, "SDL could not initialize: %s\n", SDL_GetError());
+        exit(-1);
+    }
+
+    window = SDL_CreateWindow(
+            "STAK VM",
+            SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
+            320, 240,
+            SDL_WINDOW_SHOWN
+            );
+
+    if (!window) {
+        fprintf(stderr, "Window could not be created: %s\n", SDL_GetError());
+        exit(-1);
+    }
+
+    screenSurface = SDL_GetWindowSurface(window);
+}
+
 int draw_line(Thread* thr, int color, int x1, int y1, int x2, int y2) {
     if (!screenSurface || color < 0 || color > VGA_PALETTE_LENGTH) {
         return -1;
@@ -258,20 +279,6 @@ int key_held(Thread* thr, int index) {
     else {
         return 0;
     }
-}
-
-int set_video_mode(Thread* thr, int w, int h) {
-    SDL_Init(SDL_INIT_VIDEO);
-
-    window = SDL_CreateWindow(
-            "STAK VM",
-            SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
-            w, h,
-            SDL_WINDOW_SHOWN
-            );
-
-    screenSurface = SDL_GetWindowSurface(window);
-    return 0;
 }
 
 int sin_fxp(Thread* thr, int angle) {
