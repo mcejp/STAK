@@ -1,6 +1,7 @@
 /__pycache__/
 
 *.bc
+*.o
 *.unit
 
 /interp/interp
