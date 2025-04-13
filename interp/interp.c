@@ -48,10 +48,13 @@ int main(int argc, char** argv) {
 
         if (thr.frames_paused) {
             thr.frames_paused--;
+
+            if (thr.frames_paused == 0) {
+                thr.suspended = false;
+            }
         }
-        else {
-            stak_exec(&mod, &thr);
-        }
+
+        stak_exec(&mod, &thr);
 
         frame_end();
     }

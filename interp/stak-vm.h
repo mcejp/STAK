@@ -20,7 +20,7 @@ typedef struct {
 
 typedef struct {
     bool terminated;
-    bool running;
+    bool suspended;
     int frames_paused;      // belongs here not
 
     int pc;
