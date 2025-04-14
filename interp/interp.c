@@ -14,10 +14,27 @@ typedef struct {
     uint8_t pad;
 } Hdr;
 
+void usage_exit(void) {
+    fprintf(stderr, "usage: interp <filename>\n");
+    exit(-1);
+}
 
 int main(int argc, char** argv) {
-    if (argc < 2) { exit (-1); }
-    FILE* f = fopen(argv[1], "rb");
+    char* filename = NULL;
+
+    for (int i = 1; i < argc; i++) {
+        if (filename) {
+            usage_exit();
+        }
+
+        filename = argv[i];
+    }
+
+    if (!filename) {
+        usage_exit();
+    }
+
+    FILE* f = fopen(filename, "rb");
     Hdr h;
     fread(&h, 1, sizeof(h), f);
 
