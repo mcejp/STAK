@@ -11,7 +11,7 @@ static V stack[STACK_SIZE];
 // #define TR(x) printf x
 #define TR(x)
 
-#define CURR_FUNC (mod->functions[thr->frames[thr->frame].func_index])
+#define CURR_FUNC (mod->functions[thr->func_index])
 #define DROP() --thr->sp
 #define POP() stack[--thr->sp]
 #define PUSH(x) stack[thr->sp++] = (x)
@@ -61,12 +61,13 @@ void stak_exec(Module const* mod, Thread* thr) {
             }
 
             // save current pc
+            thr->frames[thr->frame].func_index = thr->func_index;
             thr->frames[thr->frame].pc = thr->pc;
             thr->frames[thr->frame].fp = thr->fp;
             thr->frame++;
 
             // call function
-            thr->frames[thr->frame].func_index = op1;
+            thr->func_index = op1;
             thr->pc = mod->functions[op1].bytecode_offset;
 
             // pop args to locals + allocate space for the rest
@@ -200,6 +201,7 @@ void stak_exec(Module const* mod, Thread* thr) {
             thr->frame--;
             thr->fp = thr->frames[thr->frame].fp;
             thr->pc = thr->frames[thr->frame].pc;
+            thr->func_index = thr->frames[thr->frame].func_index;
             break;
 
         case OP_SETGLOBAL:

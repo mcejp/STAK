@@ -23,6 +23,9 @@ typedef struct {
     bool suspended;
     int frames_paused;      // belongs here not
 
+    // since VM already accesses Thread through a pointer, maybe we could store these
+    // directly in Frame and access through a pointer as well
+    int func_index;
     int pc;
     int sp;
     int fp;
