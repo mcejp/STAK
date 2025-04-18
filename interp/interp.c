@@ -49,7 +49,7 @@ int main(int argc, char** argv) {
     mod.bytecode_length = h.bytecode_length;
 
     Thread thr;
-    thr.terminated = false;
+    thr.state = THREAD_EXECUTING;
     thr.frames_paused = 0;
     thr.func_index = h.main_func_idx;
     thr.pc = mod.functions[h.main_func_idx].bytecode_offset;
@@ -59,14 +59,14 @@ int main(int argc, char** argv) {
 
     periph_init();
 
-    while (!thr.terminated) {
+    while (thr.state != THREAD_TERMINATED) {
         frame_start();
 
         if (thr.frames_paused) {
             thr.frames_paused--;
 
             if (thr.frames_paused == 0) {
-                thr.suspended = false;
+                thr.state = THREAD_EXECUTING;
             }
         }
 

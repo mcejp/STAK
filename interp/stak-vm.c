@@ -18,7 +18,7 @@ static V stack[STACK_SIZE];
 
 static int pause_frames(Thread* thr, int count) {
     if (count > 0) {
-        thr->suspended = true;
+        thr->state = THREAD_SUSPENDED;
         thr->frames_paused = count;
     }
     return 0;
@@ -27,7 +27,7 @@ static int pause_frames(Thread* thr, int count) {
 void stak_exec(Module const* mod, Thread* thr) {
     uint8_t const* bc = mod->bytecode;
 
-    while (!thr->suspended) {
+    while (thr->state == THREAD_EXECUTING) {
         if (thr->pc >= mod->bytecode_length) {
             fprintf(stderr, "pc overflow\n");
             exit(-1);
@@ -193,7 +193,7 @@ void stak_exec(Module const* mod, Thread* thr) {
 
             if (thr->frame == 0) {
                 printf("  return from main -> %d\n", ret_val);
-                thr->terminated = true;
+                thr->state = THREAD_TERMINATED;
                 return;
             }
 

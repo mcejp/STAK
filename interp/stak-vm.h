@@ -10,6 +10,12 @@ enum {
     STACK_SIZE = 1024,
 };
 
+enum {
+    THREAD_TERMINATED,
+    THREAD_EXECUTING,
+    THREAD_SUSPENDED,
+};
+
 typedef int16_t V;
 
 typedef struct {
@@ -19,8 +25,7 @@ typedef struct {
 } Frame;
 
 typedef struct {
-    bool terminated;
-    bool suspended;
+    int state;
     int frames_paused;      // belongs here not
 
     // since VM already accesses Thread through a pointer, maybe we could store these
