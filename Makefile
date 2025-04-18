@@ -4,4 +4,4 @@ all: test1.bc test2.bc test3.bc test-input.bc test-lines.bc test-triangle.bc tes
 	hy compile.hy $< -o $@ && cat $@
 
 %.bc: %.unit link.hy builtins.json
-	hy link.hy $< -o $@ && xxd $@
+	hy link.hy $< -o $@ #&& xxd $@
