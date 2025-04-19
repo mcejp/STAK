@@ -19,6 +19,7 @@ If
 
 When/Unless
 
-For-loop
+For-loop                (iter (for i from       (for ([i (in-range      (for [i (range 1 6)]  (for [i (range 1 6)]  (for [i (range 1 6)]
+                          1 to 5) ...)            1 5)] ...)              ...)                  ...)                  ...)
 
 While-loop

@@ -1,7 +1,7 @@
 {
     "fill-rect": {"id": 0, "argc": 5, "retc": 1},
     "pause-frames": {"id": 1, "argc": 1, "retc": 1},
-    "<=": {"id": 3, "argc": 2, "retc": 1},
+    "<": {"id": 3, "argc": 2, "retc": 1},
     "+": {"id": 4, "argc": 2, "retc": 1},
     "*": {"id": 5, "argc": 2, "retc": 1},
     "key-held?": {"id": 6, "argc": 1, "retc": 1},

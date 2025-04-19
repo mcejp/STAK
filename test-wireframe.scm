@@ -13,11 +13,9 @@
 
     ;; TRIPPY version
     ;; (not so trippy anymore with the overflow bug fixed)
-    ; (define i 0)
-    ; (while (<= i 14)
+    ; (for [i (range 15)]
     ;   (make-rotation-matrix-z (+ angle (* 256 i)))
-    ;   (cube i -100 -100 -100 100 100 100)
-    ;   (set! i (+ i 1)))
+    ;   (cube i -100 -100 -100 100 100 100))
 
     ;; Sober version
     (make-rotation-matrix-z angle)

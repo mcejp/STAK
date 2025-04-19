@@ -14,6 +14,7 @@
 
 (import
   models [CompiledFunction Unit]
+  transforms [maybe-parse transform-statement]
   write [write])
 
 (defclass [dataclass] CompilationContext []
@@ -36,12 +37,6 @@
     instr)
 
   )
-
-(defn maybe-parse [form syntax]
-  (try
-    (.parse syntax form)
-    (except [err NoParseError]
-      None)))
 
 (defn compile-getconst [ctx value]
   (if (= value 0)
@@ -121,6 +116,9 @@
     ;; discard any result of previous statement
     (for [i (range num-values-on-stack)]
       (ctx.emit 'drop))
+
+    ;; expand non-core forms
+    (setv form (transform-statement form))
 
     (setv maybe-parse* (partial maybe-parse form))
 

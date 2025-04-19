@@ -1,17 +1,13 @@
 (define (draw-splash color)
   (fill-rect color 0 0 W H)
 
-  (define i 0)
-  (while (<= i 15)
-    (fill-rect i (* i 18) (* i 10) 48 48)
-    (set! i (+ i 1)))
+  (for [i (range 0 16)]
+    (fill-rect i (* i 18) (* i 10) 48 48))
   )
 
 (define (main)
-  (define color 0)
-  (while (<= color 255)
+  (for [color (range 256)]
     (draw-splash color)
     (pause-frames 10)
-    (set! color (+ color 1))
     )
   )

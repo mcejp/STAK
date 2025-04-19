@@ -9,13 +9,11 @@
   (while 1
     (fill-rect 15 0 0 W H)
 
-    (define i 0)
-    (while (<= i 14)
+    (for [i (range 15)]
       (make-rotation-matrix (+ angle (* 1500 i)))
       (set! m13 (>> W 1))
       (set! m23 (>> H 1))
-      (tri i 0 0 50 50 0 100)
-      (set! i (+ i 1)))
+      (tri i 0 0 50 50 0 100))
     (pause-frames 1)
 
     (set! angle (+ angle 256))))

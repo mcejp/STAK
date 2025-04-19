@@ -9,15 +9,13 @@
   (while 1
     (fill-rect 15 0 0 W H)
 
-    (define i 0)
-    (while (<= i 255)
+    (for [i (range 256)]
       (make-rotation-matrix (+ angle (* 256 i)))
       (set! m13 (>> W 1))
       (set! m23 (>> H 1))
       ;; TODO: could use matrix to compensate mode13h distortion
       (line i 0 0 35 0)
-      (line i 60 0 90 0)
-      (set! i (+ i 1)))
+      (line i 60 0 90 0))
     (pause-frames 1)
 
     (set! angle (+ angle 256))))

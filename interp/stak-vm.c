@@ -123,7 +123,7 @@ void stak_exec(Module const* mod, Thread* thr) {
             switch (op1) {
             BUILTIN_5(0, fill_rect, "fill-rect");
             BUILTIN_1(1, pause_frames, "pause-frames");
-            BUILTIN_BIN_OP(3, <=, "<=");
+            BUILTIN_BIN_OP(3, <, "<");
             BUILTIN_BIN_OP(4, +, "+");
             BUILTIN_BIN_OP(5, *, "*");
             BUILTIN_1(6, key_held, "key-held?");
