@@ -9,7 +9,7 @@
   (while 1
     (fill-rect 15 0 0 W H)
 
-    (for [i (range 256)]
+    (for [i (range COLOR:COUNT)]
       (make-rotation-matrix (+ angle (* 256 i)))
       (set! m13 (>> W 1))
       (set! m23 (>> H 1))

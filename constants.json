@@ -1,6 +1,7 @@
 {
 	"COLOR:BLACK": 0,
 	"COLOR:WHITE": 15,
+	"COLOR:COUNT": 256,
 	"W": 320,
 	"H": 200,
 
