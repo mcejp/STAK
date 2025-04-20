@@ -10,10 +10,15 @@
     (fill-rect 15 0 0 W H)
 
     (for [i (range 15)]
-      (make-rotation-matrix (+ angle (* 1500 i)))
+      (make-rotation-matrix (+ angle (* 4369 i)))  ; 65536 / 15 ~= 4369
+      ;; compensate Mode 13h distortion by scaling the y axis by a factor of 5/6
+      (set! m21 (/ (* m21 5) 6))
+      (set! m22 (/ (* m22 5) 6))
+      ;; move to screen center
       (set! m13 (>> W 1))
       (set! m23 (>> H 1))
-      (tri i 0 0 50 50 0 100))
+      ;; draw triangle
+      (tri i 60 13 60 -13 120 0))
     (pause-frames 1)
 
     (set! angle (+ angle 256))))

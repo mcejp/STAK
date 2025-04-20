@@ -11,9 +11,13 @@
 
     (for [i (range COLOR:COUNT)]
       (make-rotation-matrix (+ angle (* 256 i)))
+      ;; compensate Mode 13h distortion by scaling the y axis by a factor of 5/6
+      (set! m21 (/ (* m21 5) 6))
+      (set! m22 (/ (* m22 5) 6))
+      ;; move to screen center
       (set! m13 (>> W 1))
       (set! m23 (>> H 1))
-      ;; TODO: could use matrix to compensate mode13h distortion
+      ;; draw two line segments
       (line i 0 0 35 0)
       (line i 60 0 90 0))
     (pause-frames 1)

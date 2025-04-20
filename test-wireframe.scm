@@ -99,7 +99,7 @@
   ;; divide by z and shift to middle of screen
 
   (set! sx (/ (* sx 128) (>> sz 1)))
-  (set! sy (/ (* sy 128) (>> sz 1)))
+  (set! sy (/ (* sy 107) (>> sz 1)))  ; 128 * 5/6, to compensate Mode 13h distortion
 
   (values (+ sx (>> W 1))
           (+ sy (>> H 1))))
