@@ -102,8 +102,6 @@
     (setv [_globals #* globals] f2)
     (assert (= _globals 'globals))
 
-    (print globals)
-
     ;; ugggllyyyy
     (defn parse-dict [form]
       (dfor [name value] form (str name) (int value))

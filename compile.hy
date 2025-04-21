@@ -268,8 +268,15 @@
   (ctx.emit 'ret num-values-on-stack)
   num-values-on-stack)
 
-(defn compile-unit [builtin-constants filename forms]
+(defn compile-unit [builtin-constants
+                    filename
+                    forms
+                    [repl-globals None]]
   (setv unit (Unit :globals {} :functions []))
+
+  (when (is-not repl-globals None)
+    ;; Pre-populate unit.globals with names of previously defined globals
+    (setv unit.globals (dfor name repl-globals name None)))
 
   (for [f forms]
     ;(print f)
