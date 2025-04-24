@@ -49,16 +49,8 @@ void stak_exec(Module const* mod, Thread* thr) {
             break;
 
         case OP_CALLFUNC:
-            // TODO: why is argc encoded? it can be checked at link time
             op1 = bc[thr->pc++];    // func_idx
-            op2 = bc[thr->pc++]; // argc
-            TR(("  call/func %d %d\n", op1, op2));
-
-            if (op2 != mod->functions[op1].argc) {
-                printf("fatal: function called with wrong number of args (expected %d, got %d)\n",
-                       mod->functions[op1].argc, op1);
-                exit(-1);
-            }
+            TR(("  call/func %d\n", op1));
 
             // save current pc
             thr->frames[thr->frame].func_index = thr->func_index;

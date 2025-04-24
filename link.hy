@@ -69,9 +69,11 @@
               (check-retc (get info "retc"))
               ['call:ext (get info "id")]
               )
-            (in name function-ids) (do
-              (check-retc (. (get all-functions name) retc))
-              ['call:func (get function-ids name) argc])
+            (in name function-ids) (let [f (get all-functions name)]
+              (unless (= argc f.argc)
+                (error f"Function '{name}' expects {f.argc} arguments, but {argc} were passed"))
+              (check-retc f.retc)
+              ['call:func (get function-ids name)])
             True (raise (Exception f"unresolved function {name}"))
             ))
         ;; getglobal/setglobal
