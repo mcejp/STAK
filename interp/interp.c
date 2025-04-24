@@ -38,7 +38,7 @@ int main(int argc, char** argv) {
     Hdr h;
     fread(&h, 1, sizeof(h), f);
 
-    static uint8_t buf[64*1024];
+    static uint8_t buf[0x8000];
     fread(buf, 1, sizeof(buf), f);
 
     Module mod;

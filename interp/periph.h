@@ -2,6 +2,15 @@
 
 #include "stak-vm.h"
 
+enum {
+    KEY_UP,
+    KEY_DOWN,
+    KEY_LEFT,
+    KEY_RIGHT,
+    KEY_A,
+    KEY_MAX
+};
+
 void periph_init(void);
 void frame_start(void);
 void frame_end(void);

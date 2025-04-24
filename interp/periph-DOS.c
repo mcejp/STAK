@@ -1,22 +1,18 @@
 #include "periph.h"
 
-#include <SDL.h>
+#include <dos.h>
+#include <math.h>
 
-#include "vga_palette.h"
-
-static SDL_Window* window;
-static SDL_Surface* screenSurface;
-
-enum { CANVAS_W = 320 };
-enum { CANVAS_H = 200 };
-enum { WINDOW_W = 640 };
-enum { WINDOW_H = 480 };
+enum {
+    SCRW = 320,
+    SCRH = 200,
+};
 
 static bool key_state[KEY_MAX];     // true = held down
 
-static int min(int a, int b) {
-    return (a < b) ? a : b;
-}
+// TODO: use near pointer and DS switching instead
+char far *screen;
+#define PXL(y_, x_) screen[(y_)*320+(x_)]
 
 static void swap_points(int* x1, int* y1, int* x2, int* y2) {
     int x = *x1;
@@ -28,33 +24,16 @@ static void swap_points(int* x1, int* y1, int* x2, int* y2) {
 }
 
 void periph_init(void) {
-    if (SDL_Init(SDL_INIT_VIDEO) < 0) {
-        fprintf(stderr, "SDL could not initialize: %s\n", SDL_GetError());
-        exit(-1);
+    _asm {
+        mov ax,13h
+        int 10h
     }
 
-    window = SDL_CreateWindow(
-            "STAK VM",
-            SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
-            WINDOW_W, WINDOW_H,
-            SDL_WINDOW_SHOWN
-            );
-
-    if (!window) {
-        fprintf(stderr, "Window could not be created: %s\n", SDL_GetError());
-        exit(-1);
-    }
-
-    // Create an off-screen surface for the canvas
-    screenSurface = SDL_CreateRGBSurface(0, CANVAS_W, CANVAS_H, 32, 0, 0, 0, 0);
-    if (!screenSurface) {
-        fprintf(stderr, "Off-screen surface could not be created: %s\n", SDL_GetError());
-        exit(-1);
-    }
+    screen = (char far *)MK_FP(0xA000, 0);
 }
 
 int draw_line(Thread* thr, int color, int x1, int y1, int x2, int y2) {
-    if (!screenSurface || color < 0 || color > VGA_PALETTE_LENGTH) {
+    if (!screen) {
         return -1;
     }
 
@@ -100,8 +79,8 @@ int draw_line(Thread* thr, int color, int x1, int y1, int x2, int y2) {
             }
         }
 
-        SDL_Rect rect = { swapped ? Y : X, swapped ? X : Y, 1, 1 };
-        SDL_FillRect(screenSurface, &rect, vga_palette[color]);
+        // TODO: check for off-screen
+        PXL(swapped ? X : Y, swapped ? Y : X) = color;
 
         E -= 2 * (x2 - x1);
     }
@@ -110,17 +89,21 @@ int draw_line(Thread* thr, int color, int x1, int y1, int x2, int y2) {
 }
 
 int fill_rect(Thread* thr, int color, int x, int y, int w, int h) {
-    if (!screenSurface || color < 0 || color > VGA_PALETTE_LENGTH) {
+    if (!screen) {
         return -1;
     }
 
-    SDL_Rect rect = { x, y, w, h };
-    SDL_FillRect(screenSurface, &rect, vga_palette[color]);
+    // highly sub-optimal
+    for (int yy = y; yy < y + h && y < SCRH; yy++) {
+        for (int xx = x; xx < x + w && x < SCRW; xx++) {
+            PXL(yy, xx) = color;
+        }
+    }
     return 0;
 }
 
 int fill_triangle(Thread* thr, int color, int x1, int y1, int x2, int y2, int x3, int y3) {
-    if (!screenSurface || color < 0 || color > VGA_PALETTE_LENGTH) {
+    if (!screen) {
         return -1;
     }
 
@@ -184,8 +167,9 @@ int fill_triangle(Thread* thr, int color, int x1, int y1, int x2, int y2, int x3
             }
         }
 
-        SDL_Rect rect = { min(X_left, X_right), Y, abs(X_right - X_left), 1 };
-        SDL_FillRect(screenSurface, &rect, vga_palette[color]);
+        for (int xx = min(X_left, X_right); xx < max(X_left, X_right); xx++) {
+            PXL(Y, xx) = color;
+        }
 
         E1 -= 2 * (x2 - x1);
         E2 -= 2 * (x3 - x1);
@@ -229,8 +213,9 @@ int fill_triangle(Thread* thr, int color, int x1, int y1, int x2, int y2, int x3
             }
         }
 
-        SDL_Rect rect = { min(X_left, X_right), Y, abs(X_right - X_left), 1 };
-        SDL_FillRect(screenSurface, &rect, vga_palette[color]);
+        for (int xx = min(X_left, X_right); xx < max(X_left, X_right); xx++) {
+            PXL(Y, xx) = color;
+        }
 
         E1 -= 2 * (x3 - x2);
         E2 -= 2 * (x3 - x1);
@@ -240,46 +225,15 @@ int fill_triangle(Thread* thr, int color, int x1, int y1, int x2, int y2, int x3
 }
 
 void frame_start(void) {
-    SDL_Event ev;
-
-    while (SDL_PollEvent(&ev)) {
-        switch (ev.type) {
-        case SDL_KEYDOWN:
-        case SDL_KEYUP: {
-            bool pressed = (ev.type == SDL_KEYDOWN);
-
-            switch (ev.key.keysym.sym) {
-            case SDLK_UP:       key_state[KEY_UP] = pressed; break;
-            case SDLK_DOWN:     key_state[KEY_DOWN] = pressed; break;
-            case SDLK_LEFT:     key_state[KEY_LEFT] = pressed; break;
-            case SDLK_RIGHT:    key_state[KEY_RIGHT] = pressed; break;
-            case 'x':           key_state[KEY_A] = pressed; break;
-            }
-
-            break;
-        }
-
-        case SDL_QUIT:
-            exit(0);
-            break;
-        }
-    }
+    // TODO: wait for vertical retrace
 }
 
 void frame_end(void) {
-    if (window && screenSurface) {
-        SDL_Surface* windowSurface = SDL_GetWindowSurface(window);
-
-        // Scale the off-screen canvas to fill the window
-        SDL_Rect destRect = { 0, 0, WINDOW_W, WINDOW_H };
-        SDL_BlitScaled(screenSurface, NULL, windowSurface, &destRect);
-        SDL_UpdateWindowSurface(window);
-
-        SDL_Delay(1000 / 60);
-    }
 }
 
 int key_held(Thread* thr, int index) {
+    // TODO: this needs to be actually implemented
+
     if (index >= 0 && index < KEY_MAX) {
         return key_state[index] ? 1 : 0;
     }
@@ -287,6 +241,8 @@ int key_held(Thread* thr, int index) {
         return 0;
     }
 }
+
+#define M_PI 3.1415926535
 
 int sin_fxp(Thread* thr, int angle) {
     return (int)round(sin(angle * M_PI / 32768.0) * 16384.0);

@@ -1,0 +1,21 @@
+CFLAGS=-q -0 -bt=dos -ms -za99
+LDFLAGS=$(CFLAGS)
+
+all: INTERP.EXE
+
+clean:
+	rm -f *.o *.EXE
+
+%.o: %.c
+	wcc $(CFLAGS) -fo=$@ $<
+
+INTERP.EXE: interp.o periph-DOS.o stak-vm.o
+	wcl $(LDFLAGS) -fe=$@ $^
+
+TRIANGLE.BC: ../test-triangle.bc
+	cp $< $@
+
+test: INTERP.EXE TRIANGLE.BC
+	dosbox -c "MOUNT C ." -c "C:" -c "INTERP.EXE TRIANGLE.BC"
+
+.PHONY: test
