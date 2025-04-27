@@ -89,16 +89,95 @@ int draw_line(Thread* thr, int color, int x1, int y1, int x2, int y2) {
 }
 
 int fill_rect(Thread* thr, int color, int x, int y, int w, int h) {
-    if (!screen) {
-        return -1;
+    // clip to screen
+    // examples: (-50, 70) -> (0, 20)
+    //           (-50, 40) -> (0, -10) -> reject
+    if (x < 0) {
+        w += x;
+        x = 0;
+    }
+    if (y < 0) {
+        h += y;
+        y = 0;
+    }
+    if (w < 0 || h < 0) {
+        return 0;
+    }
+    if (x + w > SCRW) {
+        w = SCRW - x;
+    }
+    if (y + h > SCRH) {
+        h = SCRH - y;
     }
 
-    // highly sub-optimal
-    for (int yy = y; yy < y + h && y < SCRH; yy++) {
-        for (int xx = x; xx < x + w && x < SCRW; xx++) {
-            PXL(yy, xx) = color;
+    // optimize full-screen clear (use word store)
+    if (x == 0 && y == 0 && w == SCRW && h == SCRH) {
+        _asm {
+            push di
+            push es
+
+            mov ax, 0xA000
+            mov es, ax
+            xor di, di
+            mov ax, color
+            mov cl, 8
+            shl ax, cl
+            or ax, color
+            mov cx, 32000
+            rep stosw
+
+            pop es
+            pop di
         }
+
+        return 0;
     }
+
+    // h is now y2
+    h += y;
+
+    // TODO: use word store. needs special hadnling if starting/ending on odd columns
+    // w /= 2;
+    // color = (color & 0xff) * 0x0101;
+
+    _asm {
+        push bx
+        push di
+        push es
+
+        mov ax, 0xA000
+        mov es, ax
+
+        // ax = clobber
+        // bx = row counter
+        // cx = count
+        // dx = clobber
+        // di = write pointer
+
+        mov bx, y
+
+        $1:
+        // compute di = y * 320 + x
+        mov ax, bx
+        mov di, 320
+        // dx:ax = ax * di
+        mul di
+        add ax, x
+        mov di, ax
+
+        mov ax, color
+        mov cx, w
+        rep stosb
+
+        inc bx
+        cmp bx, h
+        jl $1
+
+        pop es
+        pop di
+        pop bx
+    }
+
     return 0;
 }
 
