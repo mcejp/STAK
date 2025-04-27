@@ -25,11 +25,18 @@ static void swap_points(int* x1, int* y1, int* x2, int* y2) {
 
 void periph_init(void) {
     _asm {
-        mov ax,13h
+        mov ax, 13h
         int 10h
     }
 
     screen = (char far *)MK_FP(0xA000, 0);
+}
+
+void periph_shutdown(void) {
+    _asm {
+        mov ax, 3
+        int 10h
+    }
 }
 
 int draw_line(Thread* thr, int color, int x1, int y1, int x2, int y2) {

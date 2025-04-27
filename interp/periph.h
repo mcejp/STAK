@@ -12,6 +12,7 @@ enum {
 };
 
 void periph_init(void);
+void periph_shutdown(void);
 void frame_start(void);
 void frame_end(void);
 

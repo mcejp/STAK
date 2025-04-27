@@ -74,4 +74,6 @@ int main(int argc, char** argv) {
 
         frame_end();
     }
+
+    periph_shutdown();
 }

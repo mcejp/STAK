@@ -53,6 +53,10 @@ void periph_init(void) {
     }
 }
 
+void periph_shutdown(void) {
+    SDL_Quit();
+}
+
 int draw_line(Thread* thr, int color, int x1, int y1, int x2, int y2) {
     if (!screenSurface || color < 0 || color > VGA_PALETTE_LENGTH) {
         return -1;
