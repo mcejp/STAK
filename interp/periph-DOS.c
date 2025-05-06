@@ -1,5 +1,6 @@
 #include "periph.h"
 
+#include <conio.h>
 #include <dos.h>
 #include <math.h>
 
@@ -311,7 +312,12 @@ int fill_triangle(Thread* thr, int color, int x1, int y1, int x2, int y2, int x3
 }
 
 void frame_start(void) {
-    // TODO: wait for vertical retrace
+    if (kbhit()) {
+        if (getch() == 27) {
+            periph_shutdown();
+            exit(0);
+        }
+    }
 }
 
 void frame_end(void) {
