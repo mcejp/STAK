@@ -184,7 +184,7 @@ void stak_exec(Module const* mod, Thread* thr) {
             thr->sp = thr->sp - CURR_FUNC.num_locals - CURR_FUNC.argc + op1;
 
             if (thr->frame == 0) {
-                printf("  return from main -> %d\n", ret_val);
+                TR(("  return from main -> %d\n", ret_val));
                 thr->state = THREAD_TERMINATED;
                 return;
             }
