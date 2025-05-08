@@ -40,14 +40,6 @@ void stak_exec(Module const* mod, Thread* thr) {
         TR(("[%04X] op %02X\tsp=%d\tfp=%d\n", thr->pc - 1, opcode, thr->sp, thr->fp));
 
         switch (opcode) {
-        case OP_GETCONST:
-            op1 = bc[thr->pc++];
-            TR(("  getconst %d\n", op1));
-
-            stack[thr->sp++] = mod->constants[CURR_FUNC.constants_offset + op1];
-            TR(("    (%d)\n", stack[thr->sp - 1]));
-            break;
-
         case OP_CALLFUNC:
             op1 = bc[thr->pc++];    // func_idx
             TR(("  call/func %d\n", op1));
@@ -165,6 +157,15 @@ void stak_exec(Module const* mod, Thread* thr) {
             if (POP() == 0) {
                 thr->pc += (op2 << 8 | (uint8_t)op1);
             }
+            break;
+
+        case OP_PUSHCONST:
+            op1 = bc[thr->pc++];    // LSB
+            op2 = bc[thr->pc++];    // MSB
+
+            TR(("  pushconst "));
+            PUSH(((uint8_t)op2) << 8 | (uint8_t)op1);
+            TR((" %d\n", stack[thr->sp - 1]));
             break;
 
         case OP_RET:

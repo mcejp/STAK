@@ -43,13 +43,7 @@
     ;; special opcode for 0
     (ctx.emit 'zero)
     ;; general case
-    (try
-      (setv index (.index ctx.function.constants value))
-      (except [ValueError]
-        (setv index (len ctx.function.constants))
-        (ctx.function.constants.append value)
-        )
-      (finally (ctx.emit 'getconst index)))))
+    (ctx.emit 'pushconst value)))
 
 ;; returns nothing
 (defn compile-expression [ctx expr [expected-values 1]]
@@ -309,7 +303,6 @@
         (setv function (CompiledFunction :name name
                                          :argc (len parameters)
                                          :retc None   ;; don't know yet at this point
-                                         :constants []
                                          :num-locals 0
                                          :body None))
 

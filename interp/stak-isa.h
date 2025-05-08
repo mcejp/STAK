@@ -1,7 +1,7 @@
 #pragma once
 
 enum {
-    OP_GETCONST = 0,
+    OP_PUSHCONST = 0,
     OP_ZERO = 1,
     OP_DROP = 2,
     OP_GETGLOBAL = 3,

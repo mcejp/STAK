@@ -42,14 +42,11 @@ typedef struct {
 typedef struct {
     uint8_t argc, num_locals;
     uint16_t bytecode_offset;
-    uint16_t constants_offset;
-    uint8_t pad[2];
 } Func;
 
 typedef struct {
     Func* functions;
     //size_t num_functions;
-    V* constants;
     V* globals;
     uint8_t* bytecode;
     size_t bytecode_length;

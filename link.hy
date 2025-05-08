@@ -25,7 +25,6 @@
 ;; Additional information not included in program or program fragment
 (defclass [dataclass] LinkInfo []
   #^ int bc-end
-  #^ int constants-end
   #^ (of dict str ProgramFunction) function-table
   #^ (of dict str int) global-table
   )
@@ -36,7 +35,6 @@
                     [repl-initial-state None]
                     [allow-no-main False]]
   (setv bc-end 0)
-  (setv constants-end 0)
 
   (setv #^ (of dict str ProgramFunction)
         function-table {})
@@ -46,13 +44,11 @@
   (setv functions-to-compile [])
 
   (setv program (Program :bytecode []
-                         :constants []
                          :functions []
                          :globals []))
 
   (when (is-not repl-initial-state None)
     (setv bc-end          repl-initial-state.bc-end
-          constants-end   repl-initial-state.constants-end
           function-table  {#** repl-initial-state.function-table}
           global-table    {#** repl-initial-state.global-table}))
 
@@ -137,8 +133,8 @@
 
   (defn instruction-length [insn]
     ;; 1 byte per opcode and each operand
-    ;; except for branches where the operand is 2 bytes
-    (if (in (get insn 0) #{'jmp 'jz})
+    ;; except for branches & pushconst where the operand is 2 bytes
+    (if (in (get insn 0) #{'jmp 'jz 'pushconst})
       3
       (len insn)))
 
@@ -179,15 +175,11 @@
     (setv f* (LinkedFunction :name f.name
                              :argc f.argc
                              :num-locals f.num-locals
-                             :bytecode-offset bc-end
-                             :constants-offset constants-end))
+                             :bytecode-offset bc-end))
     (program.functions.append f*)
 
     (setv program.bytecode (+ program.bytecode f.body)
           bc-end (+ bc-end func-body-len))
-
-    (setv program.constants (+ program.constants f.constants)
-          constants-end (+ constants-end (len f.constants)))
     )
 
 
@@ -197,7 +189,7 @@
   (pprint program)
 
   (setv OPCODE-NUMBERS {
-    'getconst 0
+    'pushconst 0
     'zero 1
     'drop 2
     'getglobal 3
@@ -219,26 +211,22 @@
 
     (with [f (open (+ output ".tmp") "wb")]
       ;; write header
-      (f.write (struct.pack "<HHBBBx" bc-end
-                                      (len program.constants)
+      (f.write (struct.pack "<HBBBxxx" bc-end
                                       (len program.functions)
                                       (len program.globals)
                                       main-func-idx))
       ;; functions
       (for [func program.functions]
-        (f.write (struct.pack "<BBHHxx" func.argc func.num-locals func.bytecode-offset func.constants-offset)))
-      ;; constans
-      (for [value program.constants]
-        (f.write (struct.pack "<h" value)))
+        (f.write (struct.pack "<BBH" func.argc func.num-locals func.bytecode-offset)))
       ;; globals
       (for [value program.globals]
         (f.write (struct.pack "<h" value)))
       ;; bytecode
       (for [[opcode #* operands] program.bytecode]
         ;(f.write (bytes [(get OPCODE-NUMBERS opcode) #* operands])))
-        (if (in opcode #{'jmp 'jz})
+        (if (in opcode #{'jmp 'jz 'pushconst})
           (do
-            ;; branch instructions have a 16-bit offset operand
+            ;; branch instructions & pushconst have a 16-bit operand
             (f.write (struct.pack "b" (get OPCODE-NUMBERS opcode)))
             (f.write (struct.pack "h" #* operands)))
           (for [b [(get OPCODE-NUMBERS opcode) #* operands]]
@@ -246,7 +234,7 @@
     )
 
     (os.rename (+ output ".tmp") output))
-  (pun (LinkInfo :!bc-end :!constants-end :!function-table :!global-table)))
+  (pun (LinkInfo :!bc-end :!function-table :!global-table)))
 
 (defmain []
   (import argparse [ArgumentParser])

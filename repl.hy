@@ -21,9 +21,8 @@
   hyrule.oop [meth])
 
 (setv SEGMENT:BC 0
-      SEGMENT:CONST 1
-      SEGMENT:FUNC 2
-      SEGMENT:GLOB 3)
+      SEGMENT:FUNC 1
+      SEGMENT:GLOB 2)
 
 (setv OP:BEGIN-EXEC (ord "x")
       OP:WRITE-MEM  (ord "w"))
@@ -131,7 +130,6 @@
 (expect b"\x7EhSTAK\x7E")
 
 (setv program-state (link.LinkInfo :bc-end 0
-                                   :constants-end 0
                                    :function-table {}
                                    :global-table {}))
 
@@ -158,15 +156,12 @@
                                    :allow-no-main True))
   (with [f (open "lnk.tmp" "rb")]
     ;; read header
-    (setv #(bc-len num-const num-func num-glob main-func-idx) (struct.unpack "<HHBBBx" (f.read 8)))
+    (setv #(bc-len num-func num-glob main-func-idx) (struct.unpack "<HBBBxxx" (f.read 8)))
 
     ;; functions
-    (setv functions-bytes (f.read (* num-func 8)))
+    (setv functions-bytes (f.read (* num-func 4)))
     ;; (for [func program.functions]
     ;;   (f.write (struct.pack "<BBHHxx" func.argc func.num-locals func.bytecode-offset func.constants-offset)))
-
-    ;; constants
-    (setv constants-bytes (f.read (* num-const 2)))
 
     ;; globals
     (setv globals-bytes (f.read (* num-glob 2)))
@@ -180,8 +175,7 @@
     (expect (bytes [OP:WRITE-MEM 0x7E])))
 
   (write-memory SEGMENT:BC    program-state.bc-end                      bc-bytes)
-  (write-memory SEGMENT:FUNC  (* 8 (len program-state.function-table))  functions-bytes)
-  (write-memory SEGMENT:CONST (* 2 program-state.constants-end)         constants-bytes)
+  (write-memory SEGMENT:FUNC  (* 4 (len program-state.function-table))  functions-bytes)
   (write-memory SEGMENT:GLOB  (* 2 (len program-state.global-table))    globals-bytes)
 
   (when execute

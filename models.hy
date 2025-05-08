@@ -9,7 +9,6 @@
   #^ str name
   #^ int argc
   #^ int retc     ;; number of values returned
-  #^ list constants
   #^ int num-locals
   #^ object body
 
@@ -29,7 +28,7 @@
   ;; see also https://github.com/hylang/hy/discussions/2462
   (defn #^ staticmethod from-form [form]
     (assert (isinstance form Expression))
-    (setv [_function name f1 retc* f2 f3 f4] form)
+    (setv [_function name f1 retc* f3 f4] form)
     (assert (= _function 'function))
     (assert (isinstance name String))
 
@@ -43,10 +42,6 @@
     (assert (= _retc 'retc))
     (assert (isinstance retc Integer))
 
-    (assert (isinstance f2 Expression))
-    (setv [_constants #* constants] f2)
-    (assert (= _constants 'constants))
-
     (assert (isinstance f3 Expression))
     (setv [_num-locals num-locals] f3)
     (assert (= _num-locals 'num-locals))
@@ -59,7 +54,6 @@
     (CompiledFunction :name (str name)
                     :argc (int argc)
                     :retc (int retc)
-                    :constants (lfor c constants (int c))
                     :num-locals (int num-locals)
                     :body (lfor insn body (CompiledFunction.clean insn))
                     )
@@ -70,7 +64,6 @@
     (Expression ['function (String self.name)
            (Expression ['argc self.argc])
            (Expression ['retc self.retc])
-           (Expression ['constants #* self.constants])
            (Expression ['num-locals self.num-locals])
            (Expression ['body #* (gfor instr self.body (Expression instr))])
              ])
@@ -82,7 +75,6 @@
   #^ int argc
   #^ int num-locals
   #^ int bytecode-offset
-  #^ int constants-offset
   )
 
 (defclass [dataclass] Unit []
@@ -122,7 +114,6 @@
 
 (defclass [dataclass] Program []
   #^ list bytecode
-  #^ list constants
   #^ list functions
   #^ list globals   ;; list of init value
   )

@@ -13,11 +13,10 @@
 
 typedef struct {
     uint16_t bytecode_length;
-    uint16_t num_constants;
     uint8_t num_functions;
     uint8_t num_globals;
     uint8_t main_func_idx;      // useless, linker should just put main first...
-    uint8_t pad;
+    uint8_t pad[3];
 } Hdr;
 
 Module mod;
@@ -52,7 +51,6 @@ int main(int argc, char** argv) {
 
     if (debug_mode) {
         mod.functions = malloc(1024);
-        mod.constants = malloc(1024);
         mod.globals = malloc(1024);
         mod.bytecode = malloc(16384);
         mod.bytecode_length = 0;
@@ -78,9 +76,8 @@ int main(int argc, char** argv) {
         fread(buf, 1, sizeof(buf), f);
 
         mod.functions = (Func*) buf;
-        mod.constants = (V*) (buf + h.num_functions * sizeof(Func));
-        mod.globals =   (V*) (buf + h.num_functions * sizeof(Func) + h.num_constants * sizeof(V));
-        mod.bytecode =  (uint8_t*) (buf + h.num_functions * sizeof(Func) + h.num_constants * sizeof(V) + h.num_globals * sizeof(V));
+        mod.globals =   (V*) (buf + h.num_functions * sizeof(Func));
+        mod.bytecode =  (uint8_t*) (buf + h.num_functions * sizeof(Func) + h.num_globals * sizeof(V));
         mod.bytecode_length = h.bytecode_length;
 
         thr.state = THREAD_EXECUTING;

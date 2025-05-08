@@ -20,10 +20,9 @@ extern Thread thr;
 // DEBUGGING PRIMITIVES
 
 enum {
-    SEGMENT_BC,
-    SEGMENT_CONST,
-    SEGMENT_FUNC,
-    SEGMENT_GLOB,
+    SEGMENT_BC = 0,
+    SEGMENT_FUNC = 1,
+    SEGMENT_GLOB = 2,
 };
 
 void debug_begin_exec(int func_idx, int nargs) {
@@ -47,9 +46,6 @@ void* debug_get_write_buffer(int segment, size_t offset, size_t nbytes) {
         }
 
         return mod.bytecode + offset;
-    }
-    else if (segment == SEGMENT_CONST) {
-        return ((char*) mod.constants) + offset;
     }
     else if (segment == SEGMENT_FUNC) {
         return ((char*) mod.functions) + offset;
