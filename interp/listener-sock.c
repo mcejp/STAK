@@ -114,7 +114,7 @@ int listener_poll_byte(void) {
     return ch;
 }
 
-void listener_send(uint8_t const* buffer, int count) {
+void listener_send(uint8_t const* buffer, size_t count) {
     if (send(client_fd, (void*) buffer, count, 0) != count) {
         perror("send");
     }
