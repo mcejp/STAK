@@ -24,8 +24,10 @@
       SEGMENT:FUNC 1
       SEGMENT:GLOB 2)
 
-(setv OP:BEGIN-EXEC (ord "x")
-      OP:WRITE-MEM  (ord "w"))
+(setv
+  OP:BEGIN-EXEC (ord "x")
+  OP:RESET      (ord "r")
+  OP:WRITE-MEM  (ord "w"))
 
 ;; Stream-oriented transport -- need to do our own framing
 (defclass StreamTransport []
@@ -101,7 +103,7 @@
 
     ;; make sure interpreter doesn't outlive us
     (atexit.register process.terminate)
-      
+
     (setv t (retry-connect process #("localhost" 5000))))
   (args.target.startswith "tcp:") (do
     (let [[_ host port-str] (args.target.split ":")
@@ -133,14 +135,14 @@
                                    :function-table {}
                                    :global-table {}))
 
-(defn eval [form execute]
+(defn eval [program execute [filename "stdin"]]
   (global program-state)
 
   ;; (draw-line 15 0 0 100 100) (pause-frames 1)
   ;; (for (i (range 16)) (draw-line i (* 21 i) 0 160 200))
   (setv unit (compile.compile-unit builtin-constants
-                                   "stdin"
-                                   [form]
+                                   filename
+                                   program
                                    :repl-globals (list (.keys program-state.global-table))))
   (print unit)
 
@@ -201,32 +203,47 @@
     (let [inp (input ">")
           f   (io.StringIO inp)]
       ;; (print "input: " inp)
-      (setv forms (list (hy.read-many f))))
+      (cond
+        (= inp "reset") (do
+          (t.send-frame (bytes [OP:RESET]))
+          (expect (bytes [OP:RESET 0x7E]))
+          (setv program-state (link.LinkInfo :bc-end 0
+                                             :function-table {}
+                                             :global-table {})))
 
-    ;; Iterate over forms. Some forms must be evaluated in global context (define), the rest are banched and evaluated in the context of a function.
-    ;; (define <var> <value>) is special. It is split up into a global declaration, and the assignment of the initial value which is done in a functional context.
-    ;; This way, it can be initialized with an expression, which is normally not possible (globals must be initialized with a literal)
-    (setv batch [])
+        (.startswith inp "exec ") (do
+          (let [filename (.removeprefix inp "exec ")]
+            (with [f2 (open filename "r")]
+              (setv forms (list (hy.read-many f2))))
+            (eval forms :execute True :filename filename)))
 
-    (defn flush []
-      (when (> (len batch) 0)
-        (eval `(define (main) ~@batch)
-              :execute True)
-        (batch.clear)))
+        :else (do
+          (setv forms (list (hy.read-many f)))
 
-    (for [form forms]
-      (if (and (isinstance form Expression)
-               (>= (len form) 1)
-               (= (get form 0) (Symbol "define")))
-          (do
-            (flush)
-            (eval form :execute False))
-          ;; not a (define) form
-          (batch.append form)
-        )
-      )
+          ;; Iterate over forms. Some forms must be evaluated in global context (define), the rest are banched and evaluated in the context of a function.
+          ;; (define <var> <value>) is special. It is split up into a global declaration, and the assignment of the initial value which is done in a functional context.
+          ;; This way, it can be initialized with an expression, which is normally not possible (globals must be initialized with a literal)
+          (setv batch [])
 
-    (flush)
+          (defn flush []
+            (when (> (len batch) 0)
+              (eval [`(define (main) ~@batch)]
+                    :execute True)
+              (batch.clear)))
+
+          (for [form forms]
+            (if (and (isinstance form Expression)
+                    (>= (len form) 1)
+                    (= (get form 0) (Symbol "define")))
+                (do
+                  (flush)
+                  (eval [form] :execute False))
+                ;; not a (define) form
+                (batch.append form)
+              )
+            )
+
+          (flush))))
 
     (except [EOFError]
       (break))
