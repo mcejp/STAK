@@ -1,10 +1,10 @@
-CFLAGS=-q -0 -bt=dos -ms -za99 -DHAVE_DEBUG=1
+CFLAGS=-q -0 -bt=dos -ms -ox -za99 -DHAVE_DEBUG=1
 LDFLAGS=$(CFLAGS)
 
 all: INTERP.EXE
 
 clean:
-	rm -f *.o *.EXE
+	rm -f *.o *.BC *.EXE
 
 %.o: %.c
 	wcc $(CFLAGS) -fo=$@ $<
@@ -21,4 +21,4 @@ test: INTERP.EXE TRIANGLE.BC
 debug: INTERP.EXE
 	dosbox -c "serial1=nullmodem port:5000 transparent:1" -c "MOUNT C ." -c "C:" -c "INTERP.EXE -g"
 
-.PHONY: debug test
+.PHONY: all clean debug test
