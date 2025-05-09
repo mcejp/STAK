@@ -146,6 +146,7 @@ void debug_tick(void) {
             break;
         }
         rc ^= 0x20;
+        fstate = FSTATE_INFRAME;
         break;
     }
 
