@@ -3,6 +3,10 @@
 #include <conio.h>
 #include <dos.h>
 #include <math.h>
+#include <stdio.h>
+
+#define VGA_STATUS_REGISTER 0x3DA
+#define VRETRACE_FLAG       0x08
 
 enum {
     SCRW = 320,
@@ -12,6 +16,7 @@ enum {
 static bool key_state[KEY_MAX];     // true = held down
 
 // TODO: use near pointer and DS switching instead
+static unsigned fb_segment;
 char far *screen;
 #define PXL(y_, x_) screen[(y_)*320+(x_)]
 
@@ -25,12 +30,17 @@ static void swap_points(int* x1, int* y1, int* x2, int* y2) {
 }
 
 void periph_init(void) {
+    if (_dos_allocmem(SCRH * (SCRW / 16), &fb_segment) != 0) {
+        fputs("interp: failed to allocate back buffer", stderr);
+        exit(1);
+    }
+
+    screen = (char far*) MK_FP(fb_segment, 0);
+
     _asm {
         mov ax, 13h
         int 10h
     }
-
-    screen = (char far *)MK_FP(0xA000, 0);
 }
 
 void periph_shutdown(void) {
@@ -124,7 +134,7 @@ int fill_rect(Thread* thr, int color, int x, int y, int w, int h) {
             push di
             push es
 
-            mov ax, 0xA000
+            mov ax, fb_segment
             mov es, ax
             xor di, di
             mov ax, color
@@ -153,7 +163,7 @@ int fill_rect(Thread* thr, int color, int x, int y, int w, int h) {
         push di
         push es
 
-        mov ax, 0xA000
+        mov ax, fb_segment
         mov es, ax
 
         // ax = clobber
@@ -317,6 +327,33 @@ void frame_start(void) {
             periph_shutdown();
             exit(0);
         }
+    }
+
+    // wait until NOT in retrace
+    while (inp(VGA_STATUS_REGISTER) & VRETRACE_FLAG);
+
+    // wait until in retrace
+    while (!(inp(VGA_STATUS_REGISTER) & VRETRACE_FLAG));
+
+    // copy back buffer to VRAM
+    _asm {
+        push ds
+        push es
+
+        // movsw copies CX words from DS:SI to ES:DI
+        mov ax, fb_segment
+        mov ds, ax
+        mov ax, 0xA000
+        mov es, ax
+        xor si, si
+        xor di, di
+
+        mov cx, 32000
+        cld
+        rep movsw
+
+        pop es
+        pop ds
     }
 }
 
