@@ -57,8 +57,10 @@
 
   (for [unit units]
     (for [f unit.functions]
-      (assert (not-in f.name builtin-functions))
-      (assert (not-in f.name function-table))
+      (when (in f.name builtin-functions)
+        (raise (Exception f"Cannot redefine built-in function '{f.name}'")))
+      (when (in f.name function-table)
+        (raise (Exception f"Multiple definitions of function '{f.name}'")))
 
       (setv function-index (len function-table))
       (setv (get function-table f.name)
@@ -74,7 +76,8 @@
           ;; The compiler doesn't currently permit this, but variables in the REPL use this.
           (get global-table g)
           (do
-            (assert (not-in g global-table))
+            (when (in g global-table)
+              (raise (Exception f"Multiple definitions of global variable '{g}'")))
 
             ;; Note: global-table may contain additional entries coming from repl-initial-state,
             ;;       which will not be found in program.globals (and must not be added there)
