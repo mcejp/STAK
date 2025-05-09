@@ -25,7 +25,7 @@ enum {
     SEGMENT_GLOB = 2,
 };
 
-void debug_begin_exec(int func_idx, int nargs) {
+static void debug_begin_exec(int func_idx, int nargs) {
     // (re-)initialize thread
     thr.frames_paused = 0;
     thr.fp = 0;
@@ -38,7 +38,7 @@ void debug_begin_exec(int func_idx, int nargs) {
     thr.sp = mod.functions[func_idx].num_locals;
 }
 
-void* debug_get_write_buffer(int segment, size_t offset, size_t nbytes) {
+static void* debug_get_write_buffer(int segment, size_t offset, size_t nbytes) {
     if (segment == SEGMENT_BC) {
         // FIXME: must validate that it fits
         if (mod.bytecode_length < offset + nbytes) {
@@ -57,11 +57,23 @@ void* debug_get_write_buffer(int segment, size_t offset, size_t nbytes) {
     return NULL;
 }
 
+static void debug_reset(void) {
+    thr.frames_paused = 0;
+    thr.fp = 0;
+    thr.frame = 0;
+
+    thr.state = THREAD_TERMINATED;
+    thr.func_index = -1;
+    thr.pc = -1;
+    thr.sp = 0;
+}
+
 // SERIAL PROTOCOL
 
 enum {
     OP_HELLO = 'h',
     OP_BEGIN_EXEC = 'x',
+    OP_RESET = 'r',
     OP_WRITE_MEM = 'w',
 };
 
@@ -105,20 +117,12 @@ static char buf[32];
 static uint8_t buf_used = 0;
 static uint8_t* write_buffer = NULL;
 
-void debug_tick(void) {
+static void process_byte(int rc) {
     if (buf_used + 1 >= sizeof(buf)) {
         TR(("buffer overflow\n"));
         fstate = FSTATE_INIT;
         state = STATE_INIT;
     }
-
-    int rc = listener_poll_byte();
-
-    if (rc < 0) {
-        return;
-    }
-
-    // first deal with framing
 
     switch (fstate) {
     case FSTATE_INIT:
@@ -183,6 +187,12 @@ void debug_tick(void) {
                 static const uint8_t reply[] = {FRAME_DELIMITER, OP_HELLO, 'S', 'T', 'A', 'K', FRAME_DELIMITER};
                 listener_send(reply, sizeof(reply));
             }
+            if (buf[0] == OP_RESET && buf_used == 1) {
+                TR(("debug: RESET\n"));
+                debug_reset();
+                static const uint8_t reply[] = {OP_RESET, FRAME_DELIMITER};
+                listener_send(reply, sizeof(reply));
+            }
             else if (buf[0] == OP_BEGIN_EXEC && buf_used == sizeof(struct BeginExecCmd)) {
                 struct BeginExecCmd cmd;
                 memcpy(&cmd, buf, sizeof(cmd));
@@ -226,5 +236,13 @@ void debug_tick(void) {
             // TODO: no checking of byte count?
         }
         break;
+    }
+}
+
+void debug_tick(void) {
+    int rc;
+
+    while ((rc = listener_poll_byte()) >= 0) {
+        process_byte(rc);
     }
 }
