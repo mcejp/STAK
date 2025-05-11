@@ -9,16 +9,27 @@
   (while 1
     (fill-rect 15 0 0 W H)
 
-    (for [i (range 15)]
-      (make-rotation-matrix (+ angle (* 4369 i)))  ; 65536 / 15 ~= 4369
-      ;; compensate Mode 13h distortion by scaling the y axis by a factor of 5/6
-      (set! m21 (/ (* m21 5) 6))
-      (set! m22 (/ (* m22 5) 6))
+    (define num-petals 12)
+    (define angle-step 5461)    ;; 65536 / num-petals
+    (define half-length (/ H 4))
+    (define half-width 15)
+
+    (for [i (range num-petals)]
+      (make-rotation-matrix (+ angle (* angle-step i)))
+      ;; compensate Mode 13h distortion by scaling the x axis by a factor of 6/5
+      (set! m11 (/ (* m11 6) 5))
+      (set! m12 (/ (* m12 6) 5))
       ;; move to screen center
       (set! m13 (>> W 1))
       (set! m23 (>> H 1))
-      ;; draw triangle
-      (tri i 60 13 60 -13 120 0))
+      ;; draw petal using a palette of pastel colours (56 to 79)
+      (define color (+ 56 (* 2 i)))
+      (tri color half-length        half-width
+                 half-length        (- 0 half-width)
+                 (* 2 half-length)  0)
+      (tri color half-length        half-width
+                 half-length        (- 0 half-width)
+                 0                  0))
     (pause-frames 1)
 
     (set! angle (+ angle 256))))
