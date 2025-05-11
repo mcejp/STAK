@@ -8,20 +8,22 @@
   (define speed 4)
   (define angle 0)
 
+  (fill-rect COLOR:WHITE 0 0 W H)
   (while 1
-    (fill-rect 15 0 0 W H)
-
     ;; TRIPPY version
     ;; (not so trippy anymore with the overflow bug fixed)
     ; (for [i (range 15)]
     ;   (make-rotation-matrix-z (+ angle (* 256 i)))
     ;   (cube i -100 -100 -100 100 100 100))
 
-    ;; Sober version
     (make-rotation-matrix-z angle)
-    (cube 0 -100 -100 -100 100 100 100)
 
+    ;; draw
+    (cube COLOR:LIGHTRED -100 -100 -100 100 100 100)
     (pause-frames 1)
+    ;; erase
+    (cube COLOR:WHITE -100 -100 -100 100 100 100)
+
     (set! angle (+ angle 256))))
 
 
