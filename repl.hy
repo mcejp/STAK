@@ -30,7 +30,7 @@
 
 (setv
   OP:BEGIN-EXEC (ord "x")
-  OP:RESET      (ord "r")
+  OP:SUSPEND    (ord "s")
   OP:WRITE-MEM  (ord "w"))
 
 ;; Stream-oriented transport -- need to do our own framing
@@ -122,6 +122,18 @@
   (meth eval [program
               execute
               [filename "stdin"]]
+    ;; If "main" exists in function table, erase it
+    ;; When executing a stand-alone program, self.program-state will be empty,
+    ;; but for REPL'd statements this matters
+    (let [function-table @program-state.function-table]
+      (when (in "main" function-table)
+        ;; Make sure "main" is the last function and erase it
+        ;; Length of function table is used to allocate function ids, so can't delete in the middle
+        (assert (= (. function-table ["main"] id) (dec (len function-table))))
+        (del (get function-table "main"))
+        ;; TODO: can also trim bc-end
+        ))
+
     (setv unit (compile.compile-unit builtin-constants
                                      filename
                                      program
@@ -154,6 +166,10 @@
       (setv bc-bytes (f.read bc-len))
       )
 
+    ;; make sure program is not running before we start to patch up memory
+    ;; (it may also be in TERMINATED state, that's fine too)
+    (.suspend self)
+
     (let [t @transport]
       (write-memory t SEGMENT:BC    @program-state.bc-end                     bc-bytes)
       (write-memory t SEGMENT:FUNC  (* 4 (len @program-state.function-table)) functions-bytes)
@@ -163,26 +179,19 @@
         (t.send-frame (struct.pack "<BBB" OP:BEGIN-EXEC main-func-idx 0))
         (expect t (bytes [OP:BEGIN-EXEC 0x7E]))))
 
-    (let [function-table link-info.function-table]
-      (when (in "main" function-table)
-        ;; Make sure "main" is the last function and erase it
-        ;; Length of function table is used to allocate function ids, so can't delete in the middle
-        (assert (= (. function-table ["main"] id) (dec (len function-table))))
-        (del (get function-table "main"))
-        ;; TODO: can also trim bc-end
-        ))
-
     (setv @program-state link-info)
     (print "New program-state:" :end " ")
     (pprint @program-state))
 
+  ;; reset REPL state
   (meth reset []
-    (.send-frame @transport (bytes [OP:RESET]))
-    (expect @transport (bytes [OP:RESET 0x7E]))
-
     (setv @program-state (link.LinkInfo :bc-end 0
                                         :function-table {}
-                                        :global-table {}))))
+                                        :global-table {})))
+
+  (meth suspend []
+    (.send-frame @transport (bytes [OP:SUSPEND]))
+    (expect @transport (bytes [OP:SUSPEND 0x7E]))))
 
 ;; Compile and execute a complete STAK program
 (defn execute-file [session filename]

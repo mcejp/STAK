@@ -57,15 +57,11 @@ static void* debug_get_write_buffer(int segment, size_t offset, size_t nbytes) {
     return NULL;
 }
 
-static void debug_reset(void) {
+static void debug_suspend(void) {
+    // we shouldn't have to clear frames_paused. instead we should probably track
+    // different Suspension Reasons in a bit field
     thr.frames_paused = 0;
-    thr.fp = 0;
-    thr.frame = 0;
-
-    thr.state = THREAD_TERMINATED;
-    thr.func_index = -1;
-    thr.pc = -1;
-    thr.sp = 0;
+    thr.state = THREAD_SUSPENDED;
 }
 
 // SERIAL PROTOCOL
@@ -73,7 +69,7 @@ static void debug_reset(void) {
 enum {
     OP_HELLO = 'h',
     OP_BEGIN_EXEC = 'x',
-    OP_RESET = 'r',
+    OP_SUSPEND = 's',
     OP_WRITE_MEM = 'w',
 };
 
@@ -187,10 +183,10 @@ static void process_byte(int rc) {
                 static const uint8_t reply[] = {FRAME_DELIMITER, OP_HELLO, 'S', 'T', 'A', 'K', FRAME_DELIMITER};
                 listener_send(reply, sizeof(reply));
             }
-            if (buf[0] == OP_RESET && buf_used == 1) {
-                TR(("debug: RESET\n"));
-                debug_reset();
-                static const uint8_t reply[] = {OP_RESET, FRAME_DELIMITER};
+            if (buf[0] == OP_SUSPEND && buf_used == 1) {
+                TR(("debug: SUSPEND\n"));
+                debug_suspend();
+                static const uint8_t reply[] = {OP_SUSPEND, FRAME_DELIMITER};
                 listener_send(reply, sizeof(reply));
             }
             else if (buf[0] == OP_BEGIN_EXEC && buf_used == sizeof(struct BeginExecCmd)) {
