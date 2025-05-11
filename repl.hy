@@ -2,6 +2,7 @@
   atexit
   io
   json
+  os
   readline
   socket
   struct
@@ -203,6 +204,21 @@
              :filename filename))))
 
 ;;;
+;;; Misc
+;;;
+
+;; Execute callback once and then each time the file changes
+;; Can be interrupted by an exception (e.g., KeyboardInterrupt)
+(defn watch-file [path callback]
+  (let [last-stamp None]
+    (while True
+      (let [stamp (. (os.stat path) st_mtime)]
+        (when (!= stamp last-stamp)
+          (callback)
+          (setv last-stamp stamp))
+        (time.sleep 0.5)))))
+
+;;;
 ;;; MAIN
 ;;;
 
@@ -258,6 +274,17 @@
         (.startswith inp "exec ") (do
           (let [filename (.removeprefix inp "exec ")]
             (execute-file session filename)))
+
+        (.startswith inp "watch ") (do
+          (let [filename (.removeprefix inp "watch ")]
+            (try
+              (watch-file filename (fn []
+                (.reset session)
+                (execute-file session filename)))
+              (except [exc FileNotFoundError]
+                (print exc))
+              (except [KeyboardInterrupt]
+                (print)))))
 
         :else (do
           (setv forms (list (hy.read-many f)))
