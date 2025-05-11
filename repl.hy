@@ -20,6 +20,10 @@
   hyrule [unless]
   hyrule.oop [meth])
 
+;;;
+;;; Low-level debug protocol
+;;;
+
 (setv SEGMENT:BC 0
       SEGMENT:FUNC 1
       SEGMENT:GLOB 2)
@@ -73,6 +77,17 @@
   (meth send [data]
     (@sock.send data)))
 
+(defn expect [t expected]
+  (setv reply (.recvall t (len expected)))
+  ;; (print (hello.hex) (hello.decode :errors "ignore"))
+  (unless (= reply expected)
+    (raise (Exception f"bad reply, expected {(expected.hex " ")}, received {(reply.hex " ")}"))))
+
+(defn write-memory [t segment offset data]
+  (when (> (len data) 0)
+    (.send-frame t (+ (struct.pack "<BBHH" OP:WRITE-MEM segment offset (len data)) data))
+    (expect t (bytes [OP:WRITE-MEM 0x7E]))))
+
 ;; Keep trying to connect for up to 3 seconds
 (defn retry-connect [process address-tuple [attempts 30] [interval-sec 0.1]]
   (for [i (range attempts)]
@@ -89,7 +104,98 @@
         (time.sleep interval-sec)
         (continue)))))
 
-;; MAIN
+;;;
+;;; Higher-level operations
+;;;
+
+(defclass Session []
+  (meth __init__ [transport]
+    (setv @transport transport)
+    (setv @program-state
+      (link.LinkInfo :bc-end 0
+                     :function-table {}
+                     :global-table {})))
+
+  (meth close []
+    (.close @transport))
+
+  (meth eval [program
+              execute
+              [filename "stdin"]]
+    (setv unit (compile.compile-unit builtin-constants
+                                     filename
+                                     program
+                                     :repl-globals (list (.keys @program-state.global-table))))
+    (print unit)
+
+    ;; link
+
+    (with [f (open "builtins.json")]
+      (setv builtin-functions (json.load f)))
+
+    (setv link-info (link.link-program [unit]
+                                       :output "lnk.tmp"
+                                       :builtin-functions builtin-functions
+                                       :repl-initial-state @program-state
+                                       :allow-no-main True))
+    (with [f (open "lnk.tmp" "rb")]
+      ;; read header
+      (setv #(bc-len num-func num-glob main-func-idx) (struct.unpack "<HBBBxxx" (f.read 8)))
+
+      ;; functions
+      (setv functions-bytes (f.read (* num-func 4)))
+      ;; (for [func program.functions]
+      ;;   (f.write (struct.pack "<BBHHxx" func.argc func.num-locals func.bytecode-offset func.constants-offset)))
+
+      ;; globals
+      (setv globals-bytes (f.read (* num-glob 2)))
+
+      ;; bytecode
+      (setv bc-bytes (f.read bc-len))
+      )
+
+    (let [t @transport]
+      (write-memory t SEGMENT:BC    @program-state.bc-end                     bc-bytes)
+      (write-memory t SEGMENT:FUNC  (* 4 (len @program-state.function-table)) functions-bytes)
+      (write-memory t SEGMENT:GLOB  (* 2 (len @program-state.global-table))   globals-bytes)
+
+      (when execute
+        (t.send-frame (struct.pack "<BBB" OP:BEGIN-EXEC main-func-idx 0))
+        (expect t (bytes [OP:BEGIN-EXEC 0x7E]))))
+
+    (let [function-table link-info.function-table]
+      (when (in "main" function-table)
+        ;; Make sure "main" is the last function and erase it
+        ;; Length of function table is used to allocate function ids, so can't delete in the middle
+        (assert (= (. function-table ["main"] id) (dec (len function-table))))
+        (del (get function-table "main"))
+        ;; TODO: can also trim bc-end
+        ))
+
+    (setv @program-state link-info)
+    (print "New program-state:" :end " ")
+    (pprint @program-state))
+
+  (meth reset []
+    (.send-frame @transport (bytes [OP:RESET]))
+    (expect @transport (bytes [OP:RESET 0x7E]))
+
+    (setv @program-state (link.LinkInfo :bc-end 0
+                                        :function-table {}
+                                        :global-table {}))))
+
+;; Compile and execute a complete STAK program
+(defn execute-file [session filename]
+  (with [f (open filename "r")]
+    (let [forms (list (hy.read-many f))]
+      (.eval session
+             forms
+             :execute True
+             :filename filename))))
+
+;;;
+;;; MAIN
+;;;
 
 (setv args (parse-args :spec [["-t" "--target"
                                :help "Attach to a running target (instead of starting new interpreter). Use 'tcp:<host>:<port>' or 'serial:<port>:<baudrate>'"]]))
@@ -98,22 +204,25 @@
   (setv builtin-constants (json.load f)))
 
 (cond
+  ;; no target provided (launch our own)
   (is args.target None) (do
     (setv process (Popen ["./interp/interp" "-g"]))
 
     ;; make sure interpreter doesn't outlive us
     (atexit.register process.terminate)
 
-    (setv t (retry-connect process #("localhost" 5000))))
+    (setv transport (retry-connect process #("localhost" 5000))))
+  ;; TCP target
   (args.target.startswith "tcp:") (do
     (let [[_ host port-str] (args.target.split ":")
           port (int port-str)]
-      (setv t (SocketTransport #(host port)))))
+      (setv transport (SocketTransport #(host port)))))
+  ;; serial target
   (args.target.startswith "serial:") (do
     (let [[_ port baud-str] (args.target.split ":")
           baud (int baud-str)]
       (try
-        (setv t (SerialTransport port baud))
+        (setv transport (SerialTransport port baud))
         (except [exc serial.SerialException]
           (print exc)
           (exit 1)))))
@@ -121,82 +230,12 @@
     (print "Invalid target format. See(k) help.")
     (exit 1)))
 
-(t.send b"\x7Eh\x7E")  ;; send hello
+(.send transport b"\x7Eh\x7E")  ;; send hello
+(expect transport b"\x7EhSTAK\x7E")
 
-(defn expect [expected]
-  (setv reply (t.recvall (len expected)))
-  ;; (print (hello.hex) (hello.decode :errors "ignore"))
-  (unless (= reply expected)
-    (raise (Exception f"bad reply, expected {(expected.hex " ")}, received {(reply.hex " ")}"))))
+(print "REPL is connected. Press Ctrl-D to exit.")
 
-(expect b"\x7EhSTAK\x7E")
-
-(setv program-state (link.LinkInfo :bc-end 0
-                                   :function-table {}
-                                   :global-table {}))
-
-(defn eval [program execute [filename "stdin"]]
-  (global program-state)
-
-  ;; (draw-line 15 0 0 100 100) (pause-frames 1)
-  ;; (for (i (range 16)) (draw-line i (* 21 i) 0 160 200))
-  (setv unit (compile.compile-unit builtin-constants
-                                   filename
-                                   program
-                                   :repl-globals (list (.keys program-state.global-table))))
-  (print unit)
-
-  ;; link
-
-  (with [f (open "builtins.json")]
-    (setv builtin-functions (json.load f)))
-
-  (setv link-info (link.link-program [unit]
-                                   :output "lnk.tmp"
-                                   :builtin-functions builtin-functions
-                                   :repl-initial-state program-state
-                                   :allow-no-main True))
-  (with [f (open "lnk.tmp" "rb")]
-    ;; read header
-    (setv #(bc-len num-func num-glob main-func-idx) (struct.unpack "<HBBBxxx" (f.read 8)))
-
-    ;; functions
-    (setv functions-bytes (f.read (* num-func 4)))
-    ;; (for [func program.functions]
-    ;;   (f.write (struct.pack "<BBHHxx" func.argc func.num-locals func.bytecode-offset func.constants-offset)))
-
-    ;; globals
-    (setv globals-bytes (f.read (* num-glob 2)))
-
-    ;; bytecode
-    (setv bc-bytes (f.read bc-len))
-    )
-
-  (defn write-memory [segment offset data]
-    (t.send-frame (+ (struct.pack "<BBHH" OP:WRITE-MEM segment offset (len data)) data))
-    (expect (bytes [OP:WRITE-MEM 0x7E])))
-
-  (write-memory SEGMENT:BC    program-state.bc-end                      bc-bytes)
-  (write-memory SEGMENT:FUNC  (* 4 (len program-state.function-table))  functions-bytes)
-  (write-memory SEGMENT:GLOB  (* 2 (len program-state.global-table))    globals-bytes)
-
-  (when execute
-    (t.send-frame (struct.pack "<BBB" OP:BEGIN-EXEC main-func-idx 0))
-    (expect (bytes [OP:BEGIN-EXEC 0x7E])))
-
-  (let [function-table link-info.function-table]
-    (when (in "main" function-table)
-      ;; Make sure "main" is the last function and erase it
-      ;; Length of function table is used to allocate function ids, so can't delete in the middle
-      (assert (= (. function-table ["main"] id) (dec (len function-table))))
-      (del (get function-table "main"))
-      ;; TODO: can also trim bc-end
-      ))
-
-  (setv program-state link-info)
-  (print "New program-state:" :end " ")
-  (pprint program-state)
-  )
+(setv session (Session transport))
 
 (while True
   (try
@@ -205,17 +244,11 @@
       ;; (print "input: " inp)
       (cond
         (= inp "reset") (do
-          (t.send-frame (bytes [OP:RESET]))
-          (expect (bytes [OP:RESET 0x7E]))
-          (setv program-state (link.LinkInfo :bc-end 0
-                                             :function-table {}
-                                             :global-table {})))
+          (.reset session))
 
         (.startswith inp "exec ") (do
           (let [filename (.removeprefix inp "exec ")]
-            (with [f2 (open filename "r")]
-              (setv forms (list (hy.read-many f2))))
-            (eval forms :execute True :filename filename)))
+            (execute-file session filename)))
 
         :else (do
           (setv forms (list (hy.read-many f)))
@@ -227,8 +260,9 @@
 
           (defn flush []
             (when (> (len batch) 0)
-              (eval [`(define (main) ~@batch)]
-                    :execute True)
+              (.eval session
+                     [`(define (main) ~@batch)]
+                     :execute True)
               (batch.clear)))
 
           (for [form forms]
@@ -237,7 +271,9 @@
                     (= (get form 0) (Symbol "define")))
                 (do
                   (flush)
-                  (eval [form] :execute False))
+                  (.eval session
+                         [form]
+                         :execute False))
                 ;; not a (define) form
                 (batch.append form)
               )
@@ -252,4 +288,4 @@
     )
   )
 
-(t.close)
+(.close session)
