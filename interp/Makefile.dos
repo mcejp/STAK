@@ -9,7 +9,7 @@ clean:
 %.o: %.c
 	wcc $(CFLAGS) -fo=$@ $<
 
-INTERP.EXE: debug.o interp.o listener-serial.o periph-DOS.o stak-vm.o
+INTERP.EXE: debug.o dos-keyb.o interp.o listener-serial.o periph-DOS.o stak-vm.o
 	wcl $(LDFLAGS) -fe=$@ $^
 
 TRIANGLE.BC: ../test-triangle.bc

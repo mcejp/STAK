@@ -5,8 +5,9 @@
 
 
 (define (main)
-  (define speed 4)
   (define angle 0)
+  (define speed 256)
+  (define color COLOR:LIGHTRED)
 
   (fill-rect COLOR:WHITE 0 0 W H)
   (while 1
@@ -19,12 +20,18 @@
     (make-rotation-matrix-z angle)
 
     ;; draw
-    (cube COLOR:LIGHTRED -100 -100 -100 100 100 100)
+    (cube color -100 -100 -100 100 100 100)
     (pause-frames 1)
     ;; erase
     (cube COLOR:WHITE -100 -100 -100 100 100 100)
 
-    (set! angle (+ angle 256))))
+    ;; TODO: use key-pressed? once we have it
+    (when (key-held? KEY:LEFT)   (set! speed (- speed 32)))
+    (when (key-held? KEY:RIGHT)  (set! speed (+ speed 32)))
+    (when (key-held? KEY:UP)     (set! color (+ color 1)))
+    (when (key-held? KEY:DOWN)   (set! color (- color 1)))
+
+    (set! angle (+ angle speed))))
 
 
 (define (make-rotation-matrix-z angle)

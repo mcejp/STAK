@@ -94,7 +94,7 @@ static void __interrupt __far com1_handler(void) {
         rx_buffer_put(data);
     }
 
-    // Send EOI to PIC
+    // signal end of interrupt
     outp(0x20, 0x20);
 }
 

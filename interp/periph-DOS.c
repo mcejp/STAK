@@ -5,6 +5,10 @@
 #include <math.h>
 #include <stdio.h>
 
+void keyb_init(void);
+void keyb_shutdown(void);
+int keyb_read(void);
+
 #define VGA_STATUS_REGISTER 0x3DA
 #define VRETRACE_FLAG       0x08
 
@@ -41,9 +45,13 @@ void periph_init(void) {
         mov ax, 13h
         int 10h
     }
+
+    keyb_init();
 }
 
 void periph_shutdown(void) {
+    keyb_shutdown();
+
     _asm {
         mov ax, 3
         int 10h
@@ -322,13 +330,42 @@ int fill_triangle(Thread* thr, int color, int x1, int y1, int x2, int y2, int x3
 }
 
 void frame_start(void) {
-    if (kbhit()) {
-        if (getch() == 27) {
+    int key;
+
+    while ((key = keyb_read()) != -1) {
+        // I used to distinguish extended codes for arrow keys,
+        // but on the Pocket 8086 only the non-extended codes are emitted
+        // (as would have been the case on a classic PC XT keyboard, I suppose)
+        switch (key & 0xff) {
+        case 0x0001:  // Esc
             periph_shutdown();
             exit(0);
+            break;
+        case 0x001D:  // LCtrl
+        case 0x009D:
+            key_state[KEY_A] = !(key & 0x80);
+            break;
+        case 0x0048:
+        case 0x00C8:
+            key_state[KEY_UP] = !(key & 0x80);
+            break;
+        case 0x004B:
+        case 0x00CB:
+            key_state[KEY_LEFT] = !(key & 0x80);
+            break;
+        case 0x004D:
+        case 0x00CD:
+            key_state[KEY_RIGHT] = !(key & 0x80);
+            break;
+        case 0x0050:
+        case 0x00D0:
+            key_state[KEY_DOWN] = !(key & 0x80);
+            break;
         }
     }
+}
 
+void frame_end(void) {
     // wait until NOT in retrace
     while (inp(VGA_STATUS_REGISTER) & VRETRACE_FLAG);
 
@@ -355,9 +392,6 @@ void frame_start(void) {
         pop es
         pop ds
     }
-}
-
-void frame_end(void) {
 }
 
 int key_held(Thread* thr, int index) {

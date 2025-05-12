@@ -3,16 +3,16 @@
 (define m21 0)  (define m22 64) (define m23 0)
 
 (define (main)
-  (define speed 4)
   (define angle 0)
+  (define speed 256)
+
+  (define num-petals 12)
+  (define angle-step 5461)    ;; 65536 / num-petals
+  (define half-length (/ H 4))
+  (define half-width 15)
 
   (while 1
     (fill-rect 15 0 0 W H)
-
-    (define num-petals 12)
-    (define angle-step 5461)    ;; 65536 / num-petals
-    (define half-length (/ H 4))
-    (define half-width 15)
 
     (for [i (range num-petals)]
       (make-rotation-matrix (+ angle (* angle-step i)))
@@ -32,7 +32,12 @@
                  0                  0))
     (pause-frames 1)
 
-    (set! angle (+ angle 256))))
+    (when (key-held? KEY:RIGHT) (set! half-length (+ half-length 1)))
+    (when (key-held? KEY:LEFT)  (set! half-length (- half-length 1)))
+    (when (key-held? KEY:UP)    (set! speed (+ speed 16)))
+    (when (key-held? KEY:DOWN)  (set! speed (- speed 16)))
+
+    (set! angle (+ angle speed))))
 
 (define (make-rotation-matrix angle)
   ;; the sin function returns -16384..16384, so we need to shift down quite a bit to reach the desired scale of +/- 64
