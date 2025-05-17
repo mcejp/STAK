@@ -2,7 +2,7 @@
 
 #include <SDL.h>
 
-#include "vga_palette.h"
+#include "sdl-vga-palette.h"
 
 static SDL_Window* window;
 static SDL_Surface* screenSurface;

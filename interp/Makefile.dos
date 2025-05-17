@@ -9,7 +9,7 @@ clean:
 %.o: %.c
 	wcc $(CFLAGS) -fo=$@ $<
 
-interp.exe: debug.o dos-keyb.o interp.o listener-serial.o periph-DOS.o stak-vm.o
+interp.exe: debug.o dos-keyb.o interp.o dos-listener.o dos-periph.o stak-vm.o
 	wcl $(LDFLAGS) -fe=$@ $^
 
 test: interp.exe
