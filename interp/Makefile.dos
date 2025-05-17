@@ -1,4 +1,4 @@
-CFLAGS=-q -0 -bt=dos -ms -ox -za99 -DHAVE_DEBUG=1
+CFLAGS=-q -0 -bt=dos -fpc -ms -ox -za99 -DHAVE_DEBUG=1
 LDFLAGS=$(CFLAGS)
 
 all: INTERP.EXE
