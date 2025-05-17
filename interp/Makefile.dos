@@ -1,7 +1,7 @@
 CFLAGS=-q -0 -bt=dos -fpc -ms -ox -za99 -DHAVE_DEBUG=1
 LDFLAGS=$(CFLAGS)
 
-all: INTERP.EXE
+all: interp.exe
 
 clean:
 	rm -f *.o *.BC *.EXE
@@ -9,16 +9,13 @@ clean:
 %.o: %.c
 	wcc $(CFLAGS) -fo=$@ $<
 
-INTERP.EXE: debug.o dos-keyb.o interp.o listener-serial.o periph-DOS.o stak-vm.o
+interp.exe: debug.o dos-keyb.o interp.o listener-serial.o periph-DOS.o stak-vm.o
 	wcl $(LDFLAGS) -fe=$@ $^
 
-TRIANGLE.BC: ../test-triangle.bc
-	cp $< $@
+test: interp.exe
+	dosbox -c "MOUNT C ." -c "MOUNT D .." -c "C:" -c "interp.exe d:\flower.bc"
 
-test: INTERP.EXE TRIANGLE.BC
-	dosbox -c "MOUNT C ." -c "C:" -c "INTERP.EXE TRIANGLE.BC"
-
-debug: INTERP.EXE
-	dosbox -c "serial1=nullmodem port:5000 transparent:1" -c "MOUNT C ." -c "C:" -c "INTERP.EXE -g"
+debug: interp.exe
+	dosbox -c "serial1=nullmodem port:5000 transparent:1" -c "MOUNT C ." -c "C:" -c "interp.exe -g"
 
 .PHONY: all clean debug test
