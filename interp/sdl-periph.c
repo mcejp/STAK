@@ -57,57 +57,85 @@ void periph_shutdown(void) {
     SDL_Quit();
 }
 
+static void putpixel(int x, int y, uint8_t color) {
+    SDL_Rect rect = { x, y, 1, 1 };
+    SDL_FillRect(screenSurface, &rect, vga_palette[color]);
+}
+
 int draw_line(Thread* thr, int color, int x1, int y1, int x2, int y2) {
     if (!screenSurface || color < 0 || color > VGA_PALETTE_LENGTH) {
         return -1;
     }
+    
+    int dx, dy, err, x, y;
 
-    // this implementation is probably inefficient, it's just a derivative of the triangle fill code
-
-    // we need abs(dy)>abs(dx); swap X/Y if not the case
-    bool swapped = false;
-
-    if (abs(y2 - y1) < abs(x2 - x1)) {
-        swap_points(&x1, &x2, &y1, &y2);
-        swapped = true;
+    if (x2 < x1) {
+        // TODO: would be better inline
+        swap_points(&x1, &y1, &x2, &y2);
     }
 
-    // reorder vertices so that y1 <= y2
+    dx = x2 - x1;
+    dy = y2 - y1;
 
-    if (y2 < y1) {
-        swap_points(&x2, &y2, &x1, &y1);
-    }
+    if (y2 >= y1 && dx >= dy) {
+        // right-right-down
+        err = 3 * dy - 2 * dx;
+        y = y1;
 
-    // see https://mcejp.github.io/2020/11/06/bresenham.html for algorithm derivation
-
-    int E;
-    int X = x1;
-
-    if (x2 >= x1) {
-        E = (y2 - y1) - (x2 - x1);
-    }
-    else {
-        E = -(y2 - y1) - (x2 - x1);
-    }
-
-    for (int Y = y1; Y < y2; Y++) {
-        if (x2 >= x1) {
-            while (E < 0) {
-                X++;
-                E += 2 * (y2 - y1);
+        for (x = x1; x < x2; x++) {
+            putpixel(x, y, color);
+            if (err > 0) {
+                err -= 2 * dx;
+                y++;
             }
+            err += 2 * dy;
         }
-        else {
-            while (E >= 0) {
-                X--;
-                E -= 2 * (y2 - y1);
+    }
+    else if (y2 < y1 && dx >= -dy) {
+        // right-right-up
+        dy = -dy;
+
+        err = 3 * dy - 2 * dx;
+        y = y1 - 1;
+
+        for (x = x1; x < x2; x++) {
+            putpixel(x, y, color);
+            if (err > 0) {
+                err -= 2 * dx;
+                y--;
             }
+            err += 2 * dy;
         }
+    }
+    else if (y2 >= y1 && dx < dy) {
+        // right-down-down
+        err = 3 * dx - 2 * dy;
+        x = x1;
 
-        SDL_Rect rect = { swapped ? Y : X, swapped ? X : Y, 1, 1 };
-        SDL_FillRect(screenSurface, &rect, vga_palette[color]);
+        for (y = y1; y < y2; y++) {
+            putpixel(x, y, color);
+            if (err > 0) {
+                err -= 2 * dy;
+                x++;
+            }
+            err += 2 * dx;
+        }
+    }
+    else if (y2 < y1 && dx < -dy) {
+        // right-up-up
+        dy = -dy;
 
-        E -= 2 * (x2 - x1);
+        err = 3 * dx - 2 * dy;
+        x = x1;
+
+        for (y = y1 - 1; y >= y2; y--) {
+            putpixel(x, y, color);
+            if (err > 0) {
+                err -= 2 * dy;
+                x++;
+            }
+            err += 2 * dx;
+        }
     }
 
     return 0;

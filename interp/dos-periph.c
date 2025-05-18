@@ -59,56 +59,95 @@ void periph_shutdown(void) {
 }
 
 int draw_line(Thread* thr, int color, int x1, int y1, int x2, int y2) {
-    if (!screen) {
-        return -1;
+    int dx, dy, err, x, y;
+    uint8_t near* fb = 0;
+
+    if (x2 < x1) {
+        // TODO: would be better inline
+        swap_points(&x1, &y1, &x2, &y2);
     }
 
-    // this implementation is probably inefficient, it's just a derivative of the triangle fill code
-
-    // we need abs(dy)>abs(dx); swap X/Y if not the case
-    bool swapped = false;
-
-    if (abs(y2 - y1) < abs(x2 - x1)) {
-        swap_points(&x1, &x2, &y1, &y2);
-        swapped = true;
+    _asm {
+        push ds
+        mov ds, fb_segment
     }
 
-    // reorder vertices so that y1 <= y2
+    dx = x2 - x1;
+    dy = y2 - y1;
 
-    if (y2 < y1) {
-        swap_points(&x2, &y2, &x1, &y1);
-    }
+    if (y2 >= y1 && dx >= dy) {
+        // right-right-down
+        err = 3 * dy - 2 * dx;
+        fb = (uint8_t*)(y1 * SCRW + x1);
 
-    // see https://mcejp.github.io/2020/11/06/bresenham.html for algorithm derivation
-
-    int E;
-    int X = x1;
-
-    if (x2 >= x1) {
-        E = (y2 - y1) - (x2 - x1);
-    }
-    else {
-        E = -(y2 - y1) - (x2 - x1);
-    }
-
-    for (int Y = y1; Y < y2; Y++) {
-        if (x2 >= x1) {
-            while (E < 0) {
-                X++;
-                E += 2 * (y2 - y1);
+        for (x = x1; ; ) {
+            *fb++ = color;
+            x++;
+            if (x >= x2) { break; }
+            if (err > 0) {
+                err -= 2 * dx;
+                fb += SCRW;
             }
+            err += 2 * dy;
         }
-        else {
-            while (E >= 0) {
-                X--;
-                E -= 2 * (y2 - y1);
+    }
+    else if (y2 < y1 && dx >= -dy) {
+        // right-right-up
+        dy = -dy;
+
+        err = 3 * dy - 2 * dx;
+        fb = (uint8_t*)((y1 - 1) * SCRW + x1);
+
+        for (x = x1; ; ) {
+            *fb++ = color;
+            x++;
+            if (x >= x2) { break; }
+            if (err > 0) {
+                err -= 2 * dx;
+                fb -= SCRW;
             }
+            err += 2 * dy;
         }
+    }
+    else if (y2 >= y1 && dx < dy) {
+        // right-down-down
+        err = 3 * dx - 2 * dy;
+        fb = (uint8_t*)(y1 * SCRW + x1);
 
-        // TODO: check for off-screen
-        PXL(swapped ? X : Y, swapped ? Y : X) = color;
+        for (y = y1; ; ) {
+            *fb = color;
+            y++;
+            if (y >= y2) { break; }
+            fb += SCRW;
+            if (err > 0) {
+                err -= 2 * dy;
+                fb++;
+            }
+            err += 2 * dx;
+        }
+    }
+    else if (y2 < y1 && dx < -dy) {
+        // right-up-up
+        dy = -dy;
 
-        E -= 2 * (x2 - x1);
+        err = 3 * dx - 2 * dy;
+        fb = (uint8_t*)((y1 - 1) * SCRW + x1);
+
+        for (y = y1 - 1; ; ) {
+            *fb = color;
+            y--;
+            if (y < y2) { break; }
+            fb -= SCRW;
+            if (err > 0) {
+                err -= 2 * dy;
+                fb++;
+            }
+            err += 2 * dx;
+        }
+    }
+
+    _asm {
+        pop ds
     }
 
     return 0;
