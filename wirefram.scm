@@ -17,7 +17,7 @@
     ;   (make-rotation-matrix-z (+ angle (* 256 i)))
     ;   (cube i -100 -100 -100 100 100 100))
 
-    (make-rotation-matrix-z angle)
+    (make-rotation-matrix-z (>> angle 8))
 
     ;; draw
     (cube color -100 -100 -100 100 100 100)
@@ -34,20 +34,20 @@
 
 
 (define (make-rotation-matrix-z angle)
-  ;; the sin function returns -16384..16384, so we need to shift down quite a bit to reach the desired scale of +/- 64
-  ;; as for the input, 32768 ~ pi (with wrap-around working naturally)
-  (define the-sin (>> (sin angle) 8))
-  (define the-cos (>> (sin (+ angle 16384)) 8))
+  ;; sin@ and cos@ return result in 10.6 fixed-point format
+  ;; as for the input, 128 ~ pi (with wrap-around)
+  (define the-sin@ (sin@ angle))
+  (define the-cos@ (cos@ angle))
 
   ;; rotation matrix is:
   ;;   [cos -sin  0]
   ;;   [sin  cos  0]
   ;; TODO: coordinate system to be reviewed
-  (set! m11 the-cos)
-  (set! m12 (- 0 the-sin))
+  (set! m11 the-cos@)
+  (set! m12 (- 0 the-sin@))
   (set! m13 0)
-  (set! m21 the-sin)
-  (set! m22 the-cos)
+  (set! m21 the-sin@)
+  (set! m22 the-cos@)
   (set! m23 0)
   (set! m31 0)
   (set! m32 0)

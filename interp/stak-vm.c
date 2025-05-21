@@ -114,7 +114,7 @@ void stak_exec(Module const* mod, Thread* thr) {
             BUILTIN_BIN_OP(7, -, "-");
             BUILTIN_7(8, fill_triangle, "fill-triangle");
             BUILTIN_BIN_OP(9, >>, ">>");
-            BUILTIN_1(10, sin_fxp, "sin");
+            BUILTIN_1(10, sin_fxp, "sin@");
             BUILTIN_5(11, draw_line, "draw-line");
             BUILTIN_BIN_OP(12, /, "/");
             BUILTIN_BIN_OP(13, ==, "=");
@@ -122,6 +122,7 @@ void stak_exec(Module const* mod, Thread* thr) {
             BUILTIN_BIN_OP(15, &&, "and");
             BUILTIN_1(16, key_pressed, "key-pressed?");
             BUILTIN_1(17, key_released, "key-released?");
+            BUILTIN_1(18, cos_fxp, "cos@");
             default:
                 printf("  unhandled, sorry\n");
                 exit(0);

@@ -2,7 +2,6 @@
 
 #include <conio.h>
 #include <dos.h>
-#include <math.h>
 #include <stdio.h>
 
 void keyb_init(void);
@@ -465,10 +464,4 @@ int key_pressed(Thread* thr, int index) {
 
 int key_released(Thread* thr, int index) {
     return (keys_released & (1 << index));
-}
-
-#define M_PI 3.1415926535
-
-int sin_fxp(Thread* thr, int angle) {
-    return (int)round(sin(angle * M_PI / 32768.0) * 16384.0);
 }
