@@ -1,5 +1,7 @@
 #include "periph.h"
 
+#define FXP_FRAC_BITS 6
+
 // See https://github.com/mcejp/fixed-point-math/blob/main/sin_cos.cpp
 static const int8_t sin_table[65] = {
     0x00, 0x02, 0x03, 0x05, 0x06, 0x08, 0x09, 0x0b, 0x0c, 0x0e,
@@ -36,3 +38,21 @@ int sin_fxp(Thread* thr, int angle) {
 int cos_fxp(Thread* thr, int angle) {
     return sin_fxp(thr, angle + 0x40);
 }
+
+#ifdef __WATCOMC__
+int32_t mul16x16(int a, int b);
+
+#pragma aux mul16x16 = \
+    "imul dx"       \
+    parm [dx] [ax] value [dx ax] modify exact [ax dx];
+
+int mul_fxp(Thread* thr, int a, int b) {
+    // This still generates pretty slow code (loop over FXP_FRAC_BITS)
+    // It doesn't help that 8086 cannot shift by an immediate >1
+    return mul16x16(a, b) >> FXP_FRAC_BITS;
+}
+#else
+int mul_fxp(Thread* thr, int a, int b) {
+    return ((int32_t)a * b) >> FXP_FRAC_BITS;
+}
+#endif

@@ -1,6 +1,6 @@
 ;; transformation matrix
-(define m11 64) (define m12 0)  (define m13 0)
-(define m21 0)  (define m22 64) (define m23 0)
+(define m11@ 64) (define m12@ 0)  (define m13@ 0)
+(define m21@ 0)  (define m22@ 64) (define m23@ 0)
 
 (define (main)
   (define angle 0)
@@ -17,11 +17,11 @@
     (for [i (range num-petals)]
       (make-rotation-matrix (>> (+ angle (* angle-step i)) 8))
       ;; compensate Mode 13h distortion by scaling the x axis by a factor of 6/5
-      (set! m11 (/ (* m11 6) 5))
-      (set! m12 (/ (* m12 6) 5))
+      (set! m11@ (/ (* m11@ 6) 5))
+      (set! m12@ (/ (* m12@ 6) 5))
       ;; move to screen center
-      (set! m13 (>> W 1))
-      (set! m23 (>> H 1))
+      (set! m13@ (>> W 1))
+      (set! m23@ (>> H 1))
       ;; draw petal using a palette of pastel colours (56 to 79)
       (define color (+ 56 (* 2 i)))
       (tri color half-length        half-width
@@ -49,19 +49,17 @@
   ;;   [cos -sin  0]
   ;;   [sin  cos  0]
   ;; TODO: coordinate system to be reviewed
-  (set! m11 the-cos@)
-  (set! m12 (- 0 the-sin@))
-  (set! m13 0)
-  (set! m21 the-sin@)
-  (set! m22 the-cos@)
-  (set! m23 0))
+  (set! m11@ the-cos@)
+  (set! m12@ (- 0 the-sin@))
+  (set! m13@ 0)
+  (set! m21@ the-sin@)
+  (set! m22@ the-cos@)
+  (set! m23@ 0))
 
 ;; draw a transformed triangle;
-;; if coords are +/- 512
-;; matrix values must be max +/- 64
-;; and we shift 6 bits down
+;; matrix values are 10.6 fixed-point so we use the fixed-point mul@ operator
 (define (tri color x1 y1 x2 y2 x3 y3)
   (fill-triangle color
-    (+ (>> (+ (* m11 x1) (* m12 y1)) 6) m13) (+ (>> (+ (* m21 x1) (* m22 y1)) 6) m23)
-    (+ (>> (+ (* m11 x2) (* m12 y2)) 6) m13) (+ (>> (+ (* m21 x2) (* m22 y2)) 6) m23)
-    (+ (>> (+ (* m11 x3) (* m12 y3)) 6) m13) (+ (>> (+ (* m21 x3) (* m22 y3)) 6) m23)))
+    (+ (+ (mul@ m11@ x1) (mul@ m12@ y1)) m13@) (+ (+ (mul@ m21@ x1) (mul@ m22@ y1)) m23@)
+    (+ (+ (mul@ m11@ x2) (mul@ m12@ y2)) m13@) (+ (+ (mul@ m21@ x2) (mul@ m22@ y2)) m23@)
+    (+ (+ (mul@ m11@ x3) (mul@ m12@ y3)) m13@) (+ (+ (mul@ m21@ x3) (mul@ m22@ y3)) m23@)))

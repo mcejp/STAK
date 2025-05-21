@@ -1,7 +1,7 @@
 ;; world-space transformation matrix
-(define m11 64) (define m12 0)  (define m13 0)  (define m14 0)
-(define m21 0)  (define m22 64) (define m23 0)  (define m24 0)
-(define m31 0)  (define m32 0)  (define m33 64) (define m34 0)
+(define m11@ 64) (define m12@ 0)  (define m13@ 0)  (define m14@ 0)
+(define m21@ 0)  (define m22@ 64) (define m23@ 0)  (define m24@ 0)
+(define m31@ 0)  (define m32@ 0)  (define m33@ 64) (define m34@ 0)
 
 
 (define (main)
@@ -43,15 +43,15 @@
   ;;   [cos -sin  0]
   ;;   [sin  cos  0]
   ;; TODO: coordinate system to be reviewed
-  (set! m11 the-cos@)
-  (set! m12 (- 0 the-sin@))
-  (set! m13 0)
-  (set! m21 the-sin@)
-  (set! m22 the-cos@)
-  (set! m23 0)
-  (set! m31 0)
-  (set! m32 0)
-  (set! m33 64))
+  (set! m11@ the-cos@)
+  (set! m12@ (- 0 the-sin@))
+  (set! m13@ 0)
+  (set! m21@ the-sin@)
+  (set! m22@ the-cos@)
+  (set! m23@ 0)
+  (set! m31@ 0)
+  (set! m32@ 0)
+  (set! m33@ 64))
 
 
 (define (cube color x1 y1 z1 x2 y2 z2)
@@ -74,10 +74,7 @@
   (line color x1 y2 z2    x1 y1 z2))
 
 
-;; draw a transformed line;
-;; if coords are +/- 512
-;; matrix values must be max +/- 64
-;; and we shift 6 bits down
+;; draw a projected line
 (define (line color x1 y1 z1 x2 y2 z2)
   (define xx1 yy1 (project x1 y1 z1))
   (define xx2 yy2 (project x2 y2 z2))
@@ -89,10 +86,10 @@
   ;; world:  x = right, y = forward, z = up
   ;; screen: x = right, y = down,    z = forward
 
-  ;; apply transformwation in world-space
-  (define x* (+ (>> (+ (+ (* m11 x) (* m12 y)) (* m13 z)) 6) m14))
-  (define y* (+ (>> (+ (+ (* m21 x) (* m22 y)) (* m23 z)) 6) m24))
-  (define z* (+ (>> (+ (+ (* m31 x) (* m32 y)) (* m33 z)) 6) m34))
+  ;; apply transformation in world-space
+  (define x* (+ (+ (+ (mul@ m11@ x) (mul@ m12@ y)) (mul@ m13@ z)) m14@))
+  (define y* (+ (+ (+ (mul@ m21@ x) (mul@ m22@ y)) (mul@ m23@ z)) m24@))
+  (define z* (+ (+ (+ (mul@ m31@ x) (mul@ m32@ y)) (mul@ m33@ z)) m34@))
 
   ;; move to screen space (fixed camera)
   (define sx x*)

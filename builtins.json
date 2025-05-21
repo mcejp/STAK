@@ -16,5 +16,6 @@
     "and": {"id": 15, "argc": 2, "retc": 1},
     "key-pressed?": {"id": 16, "argc": 1, "retc": 1},
     "key-released?": {"id": 17, "argc": 1, "retc": 1},
-    "cos@": {"id": 18, "argc": 1, "retc": 1}
+    "cos@": {"id": 18, "argc": 1, "retc": 1},
+    "mul@": {"id": 19, "argc": 2, "retc": 1}
 }

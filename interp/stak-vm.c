@@ -123,6 +123,7 @@ void stak_exec(Module const* mod, Thread* thr) {
             BUILTIN_1(16, key_pressed, "key-pressed?");
             BUILTIN_1(17, key_released, "key-released?");
             BUILTIN_1(18, cos_fxp, "cos@");
+            BUILTIN_2(19, mul_fxp, "mul@");
             default:
                 printf("  unhandled, sorry\n");
                 exit(0);
