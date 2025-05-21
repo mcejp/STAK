@@ -25,11 +25,10 @@
     ;; erase
     (cube COLOR:WHITE -100 -100 -100 100 100 100)
 
-    ;; TODO: use key-pressed? once we have it
-    (when (key-held? KEY:LEFT)   (set! speed (- speed 32)))
-    (when (key-held? KEY:RIGHT)  (set! speed (+ speed 32)))
-    (when (key-held? KEY:UP)     (set! color (+ color 1)))
-    (when (key-held? KEY:DOWN)   (set! color (- color 1)))
+    (when (key-held? KEY:LEFT)    (set! speed (- speed 32)))
+    (when (key-held? KEY:RIGHT)   (set! speed (+ speed 32)))
+    (when (key-pressed? KEY:UP)   (set! color (+ color 1)))
+    (when (key-pressed? KEY:DOWN) (set! color (- color 1)))
 
     (set! angle (+ angle speed))))
 

@@ -120,6 +120,8 @@ void stak_exec(Module const* mod, Thread* thr) {
             BUILTIN_BIN_OP(13, ==, "=");
             BUILTIN_BIN_OP(14, >, ">");
             BUILTIN_BIN_OP(15, &&, "and");
+            BUILTIN_1(16, key_pressed, "key-pressed?");
+            BUILTIN_1(17, key_released, "key-released?");
             default:
                 printf("  unhandled, sorry\n");
                 exit(0);

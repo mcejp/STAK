@@ -12,7 +12,8 @@ enum { CANVAS_H = 200 };
 enum { WINDOW_W = 640 };
 enum { WINDOW_H = 480 };
 
-static bool key_state[KEY_MAX];     // true = held down
+static uint16_t keys_curr;
+static uint16_t keys_prev;
 
 static int min(int a, int b) {
     return (a < b) ? a : b;
@@ -44,6 +45,8 @@ void periph_init(void) {
         fprintf(stderr, "Window could not be created: %s\n", SDL_GetError());
         exit(-1);
     }
+
+    // TODO: https://wiki.libsdl.org/SDL2/SDL_SetWindowResizable
 
     // Create an off-screen surface for the canvas
     screenSurface = SDL_CreateRGBSurface(0, CANVAS_W, CANVAS_H, 32, 0, 0, 0, 0);
@@ -271,8 +274,19 @@ int fill_triangle(Thread* thr, int color, int x1, int y1, int x2, int y2, int x3
     return 0;
 }
 
+static void update_key(int key, bool pressed) {
+    if (pressed) {
+        keys_curr |= (1 << (key));
+    }
+    else {
+        keys_curr &= ~(1 << (key));
+    }
+}
+
 void frame_start(void) {
     SDL_Event ev;
+
+    keys_prev = keys_curr;
 
     while (SDL_PollEvent(&ev)) {
         switch (ev.type) {
@@ -281,11 +295,11 @@ void frame_start(void) {
             bool pressed = (ev.type == SDL_KEYDOWN);
 
             switch (ev.key.keysym.sym) {
-            case SDLK_UP:       key_state[KEY_UP] = pressed; break;
-            case SDLK_DOWN:     key_state[KEY_DOWN] = pressed; break;
-            case SDLK_LEFT:     key_state[KEY_LEFT] = pressed; break;
-            case SDLK_RIGHT:    key_state[KEY_RIGHT] = pressed; break;
-            case 'x':           key_state[KEY_A] = pressed; break;
+            case SDLK_UP:       update_key(KEY_UP, pressed); break;
+            case SDLK_DOWN:     update_key(KEY_DOWN, pressed); break;
+            case SDLK_LEFT:     update_key(KEY_LEFT, pressed); break;
+            case SDLK_RIGHT:    update_key(KEY_RIGHT, pressed); break;
+            case 'x':           update_key(KEY_A, pressed); break;
             }
 
             break;
@@ -312,12 +326,15 @@ void frame_end(void) {
 }
 
 int key_held(Thread* thr, int index) {
-    if (index >= 0 && index < KEY_MAX) {
-        return key_state[index] ? 1 : 0;
-    }
-    else {
-        return 0;
-    }
+    return (keys_curr & (1 << index)) ? 1 : 0;
+}
+
+int key_pressed(Thread* thr, int index) {
+    return (~keys_prev & keys_curr & (1 << index)) ? 1 : 0;
+}
+
+int key_released(Thread* thr, int index) {
+    return (keys_prev & ~keys_curr & (1 << index)) ? 1 : 0;
 }
 
 int sin_fxp(Thread* thr, int angle) {

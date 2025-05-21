@@ -13,5 +13,7 @@
     "/": {"id": 12, "argc": 2, "retc": 1},
     "=": {"id": 13, "argc": 2, "retc": 1},
     ">": {"id": 14, "argc": 2, "retc": 1},
-    "and": {"id": 15, "argc": 2, "retc": 1}
+    "and": {"id": 15, "argc": 2, "retc": 1},
+    "key-pressed?": {"id": 16, "argc": 1, "retc": 1},
+    "key-released?": {"id": 17, "argc": 1, "retc": 1}
 }

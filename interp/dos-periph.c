@@ -17,7 +17,9 @@ enum {
     SCRH = 200,
 };
 
-static bool key_state[KEY_MAX];     // true = held down
+static uint16_t keys_curr;
+static uint16_t keys_pressed;
+static uint16_t keys_released;
 
 // TODO: use near pointer and DS switching instead
 static unsigned fb_segment;
@@ -372,8 +374,22 @@ int fill_triangle(Thread* thr, int color, int x1, int y1, int x2, int y2, int x3
     return 0;
 }
 
+#define UPDATE_KEY(key_) do {\
+    if (key & 0x80) {\
+        keys_curr &= ~(1 << (key_));\
+        keys_released |= (1 << (key_));\
+    }\
+    else {\
+        keys_curr |= (1 << (key_));\
+        keys_pressed |= (1 << (key_));\
+    }\
+} while (0)
+
 void frame_start(void) {
     int key;
+
+    keys_pressed = 0;
+    keys_released = 0;
 
     while ((key = keyb_read()) != -1) {
         // I used to distinguish extended codes for arrow keys,
@@ -386,23 +402,23 @@ void frame_start(void) {
             break;
         case 0x001D:  // LCtrl
         case 0x009D:
-            key_state[KEY_A] = !(key & 0x80);
+            UPDATE_KEY(KEY_A);
             break;
         case 0x0048:
         case 0x00C8:
-            key_state[KEY_UP] = !(key & 0x80);
+            UPDATE_KEY(KEY_UP);
             break;
         case 0x004B:
         case 0x00CB:
-            key_state[KEY_LEFT] = !(key & 0x80);
+            UPDATE_KEY(KEY_LEFT);
             break;
         case 0x004D:
         case 0x00CD:
-            key_state[KEY_RIGHT] = !(key & 0x80);
+            UPDATE_KEY(KEY_RIGHT);
             break;
         case 0x0050:
         case 0x00D0:
-            key_state[KEY_DOWN] = !(key & 0x80);
+            UPDATE_KEY(KEY_DOWN);
             break;
         }
     }
@@ -440,14 +456,15 @@ void frame_end(void) {
 }
 
 int key_held(Thread* thr, int index) {
-    // TODO: this needs to be actually implemented
+    return (keys_curr & (1 << index));
+}
 
-    if (index >= 0 && index < KEY_MAX) {
-        return key_state[index] ? 1 : 0;
-    }
-    else {
-        return 0;
-    }
+int key_pressed(Thread* thr, int index) {
+    return (keys_pressed & (1 << index));
+}
+
+int key_released(Thread* thr, int index) {
+    return (keys_released & (1 << index));
 }
 
 #define M_PI 3.1415926535
