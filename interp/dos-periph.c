@@ -34,10 +34,14 @@ static void swap_points(int* x1, int* y1, int* x2, int* y2) {
 }
 
 void periph_init(void) {
+#ifdef DOUBLEBUF
     if (_dos_allocmem(SCRH * (SCRW / 16), &fb_segment) != 0) {
         fputs("interp: failed to allocate back buffer", stderr);
         exit(1);
     }
+#else
+    fb_segment = 0xA000;
+#endif
 
     screen = (char far*) MK_FP(fb_segment, 0);
 
@@ -405,6 +409,7 @@ void frame_start(void) {
 }
 
 void frame_end(void) {
+#ifdef DOUBLEBUF
     // wait until NOT in retrace
     while (inp(VGA_STATUS_REGISTER) & VRETRACE_FLAG);
 
@@ -431,6 +436,7 @@ void frame_end(void) {
         pop es
         pop ds
     }
+#endif
 }
 
 int key_held(Thread* thr, int index) {
