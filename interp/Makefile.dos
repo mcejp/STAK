@@ -1,21 +1,36 @@
-CFLAGS=-q -0 -bt=dos -fpc -ms -ox -za99 -DHAVE_DEBUG=1 -DDOUBLEBUF=1
+CFLAGS=-q -0 -bt=dos -fpc -ms -ox -za99 -DHAVE_DEBUG=1
 LDFLAGS=$(CFLAGS)
 
-all: interp.exe
+# very approximately Pocket 8086 @ 10 MHz (depends on the program)
+CYCLES=-c "cycles 1200"
+
+all: interp.exe ifast.exe
 
 clean:
 	rm -f *.o *.BC *.EXE
 
+dos-unbuf.o: dos-periph.c
+	wcc $(CFLAGS) -fo=$@ $<
+
+dos-dbuf.o: dos-periph.c
+	wcc $(CFLAGS) -DDOUBLEBUF=1 -fo=$@ $<
+
 %.o: %.c
 	wcc $(CFLAGS) -fo=$@ $<
 
-interp.exe: debug.o dos-keyb.o interp.o dos-listener.o cmn-periph.o dos-periph.o stak-vm.o
+interp.exe: debug.o dos-keyb.o interp.o dos-listener.o cmn-periph.o dos-dbuf.o stak-vm.o
+	wcl $(LDFLAGS) -fe=$@ $^
+
+ifast.exe: debug.o dos-keyb.o interp.o dos-listener.o cmn-periph.o dos-unbuf.o stak-vm.o
 	wcl $(LDFLAGS) -fe=$@ $^
 
 test: interp.exe
-	dosbox -c "MOUNT C ." -c "MOUNT D .." -c "C:" -c "interp.exe d:\flower.bc"
+	dosbox $(CYCLES) -c "MOUNT C ." -c "MOUNT D .." -c "C:" -c "interp.exe d:\flower.bc"
 
 debug: interp.exe
-	dosbox -c "serial1=nullmodem port:5000 transparent:1" -c "MOUNT C ." -c "C:" -c "interp.exe -g"
+	dosbox $(CYCLES) -c "serial1=nullmodem port:5000 transparent:1" -c "MOUNT C ." -c "C:" -c "interp.exe -g"
 
-.PHONY: all clean debug test
+dosbox: interp.exe
+	dosbox $(CYCLES) -c "MOUNT C ." -c "MOUNT D .." -c "C:"
+
+.PHONY: all clean debug dosbox test

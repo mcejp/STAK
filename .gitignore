@@ -5,4 +5,4 @@
 *.unit
 
 /interp/interp
-/interp/interp.exe
+/interp/*.exe
