@@ -1,4 +1,4 @@
-all: 01fill.bc 02colors.bc 03loop.bc 04input.bc 05lines.bc 06values.bc flower.bc sin.bc wirefram.bc
+all: 01fill.bc 02colors.bc 03loop.bc 04input.bc 05lines.bc 06values.bc flower.bc gorillas.bc sin.bc wirefram.bc
 
 clean:
 	rm -f *.bc *.unit
