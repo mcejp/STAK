@@ -66,10 +66,12 @@ static void putpixel(int x, int y, uint8_t color) {
 }
 
 int draw_line(Thread* thr, int color, int x1, int y1, int x2, int y2) {
-    if (!screenSurface || color < 0 || color > VGA_PALETTE_LENGTH) {
+    if (!screenSurface) {
         return -1;
     }
-    
+
+    color &= 0xff;
+
     int dx, dy, err, x, y;
 
     if (x2 < x1) {
@@ -145,9 +147,11 @@ int draw_line(Thread* thr, int color, int x1, int y1, int x2, int y2) {
 }
 
 int fill_rect(Thread* thr, int color, int x, int y, int w, int h) {
-    if (!screenSurface || color < 0 || color > VGA_PALETTE_LENGTH) {
+    if (!screenSurface) {
         return -1;
     }
+
+    color &= 0xff;
 
     SDL_Rect rect = { x, y, w, h };
     SDL_FillRect(screenSurface, &rect, vga_palette[color]);
@@ -155,9 +159,11 @@ int fill_rect(Thread* thr, int color, int x, int y, int w, int h) {
 }
 
 int fill_triangle(Thread* thr, int color, int x1, int y1, int x2, int y2, int x3, int y3) {
-    if (!screenSurface || color < 0 || color > VGA_PALETTE_LENGTH) {
+    if (!screenSurface) {
         return -1;
     }
+
+    color &= 0xff;
 
     // reorder vertices so that y1 <= y2 <= y3
 
