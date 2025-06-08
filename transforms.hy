@@ -5,14 +5,14 @@
 
 (defn transform-statement [form]
   (cond
-  ;; (for [<variable> (range [<from>] <to>)] <body> ...)
-  (setx parsed (maybe-parse form (whole [(sym "for") FORM (many FORM)]))) (do
+  ;; (dotimes (<variable> [<from>] <to>) <body> ...)
+  (setx parsed (maybe-parse form (whole [(sym "dotimes") FORM (many FORM)]))) (do
     (setv [for-clause body] parsed)
 
     ;; Since the parsing is greedy, we have to mark <to> as optional rather than <from>.
     ;; This is accounted for just below.
-    (let [syntax (whole [SYM (pexpr (sym "range") FORM (maybe FORM))])]
-      (setv [var [from to]] (syntax.parse for-clause)))
+    (let [syntax (whole [SYM FORM (maybe FORM)])]
+      (setv [var from to] (syntax.parse for-clause)))
     (when (is to None)
       (setv [from to] [`0 from]))
 

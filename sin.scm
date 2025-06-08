@@ -1,5 +1,5 @@
 (define (main)
-  (for (i (range 0 256))
+  (dotimes (i 0 256)
     (define next (+ i 1))
     (define the-sin@ (sin@ i))
     (define the-cos@ (cos@ i))

@@ -12,9 +12,9 @@
   (define half-width 15)
 
   (while 1
-    (fill-rect 15 0 0 W H)
+    (fill-rect COLOR:WHITE 0 0 W H)
 
-    (for [i (range num-petals)]
+    (dotimes (i num-petals)
       (make-rotation-matrix (>> (+ angle (* angle-step i)) 8))
       ;; compensate Mode 13h distortion by scaling the x axis by a factor of 6/5
       (set! m11@ (/ (* m11@ 6) 5))

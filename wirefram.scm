@@ -13,7 +13,7 @@
   (while 1
     ;; TRIPPY version
     ;; (not so trippy anymore with the overflow bug fixed)
-    ; (for [i (range 15)]
+    ; (dotimes (i 15)
     ;   (make-rotation-matrix-z (+ angle (* 256 i)))
     ;   (cube i -100 -100 -100 100 100 100))
 

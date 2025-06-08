@@ -9,7 +9,7 @@
   (while 1
     (fill-rect 15 0 0 W H)
 
-    (for [i (range COLOR:COUNT)]
+    (dotimes (i COLOR:COUNT)
       (make-rotation-matrix (+ angle i))
       ;; compensate Mode 13h distortion by scaling the y axis by a factor of 5/6
       (set! m21@ (/ (* m21@ 5) 6))
