@@ -60,13 +60,26 @@ void stak_exec(Module const* mod, Thread* thr) {
             break;
 
         case OP_CALL_EXT:
+            // It would make perfect sense to skip the opcode altogether and just
+            // encode ext_func_idx (as long as it starts after all other opcodes).
+            // It will require changing the compiler, though, because it means the encoding
+            // will differ between user function calls and built-in function calls.
             op1 = bc[thr->pc++];    // ext_func_idx
             TR(("  call/ext %d\n", op1));
+
+        // define some helper macros for the built-in library
 
 #define BUILTIN_1(id, c_name, name) case id:\
                 thr->sp -= 1; \
                 TR(("    (" name " %d)\n", stack[thr->sp])); \
                 ret_val = c_name(thr, stack[thr->sp]); \
+                PUSH(ret_val); \
+                break;
+
+#define BUILTIN_UNARY_OP(id, operator, name) case id:\
+                thr->sp -= 1; \
+                TR(("    (" name " %d)\n", stack[thr->sp])); \
+                ret_val = operator stack[thr->sp]; \
                 PUSH(ret_val); \
                 break;
 
@@ -77,10 +90,10 @@ void stak_exec(Module const* mod, Thread* thr) {
                 PUSH(ret_val); \
                 break;
 
-#define BUILTIN_BIN_OP(id, c_name, name) case id:\
+#define BUILTIN_BIN_OP(id, operator, name) case id:\
                 thr->sp -= 2; \
                 TR(("    (%d " name " %d)\n", stack[thr->sp], stack[thr->sp + 1])); \
-                ret_val = stack[thr->sp] c_name stack[thr->sp + 1]; \
+                ret_val = stack[thr->sp] operator stack[thr->sp + 1]; \
                 PUSH(ret_val); \
                 break;
 
@@ -104,28 +117,42 @@ void stak_exec(Module const* mod, Thread* thr) {
                 PUSH(ret_val); \
                 break;
 
-            switch (op1) {
-            BUILTIN_5(0, fill_rect, "fill-rect");
-            BUILTIN_1(1, pause_frames, "pause-frames");
-            BUILTIN_BIN_OP(3, <, "<");
-            BUILTIN_BIN_OP(4, +, "+");
-            BUILTIN_BIN_OP(5, *, "*");
-            BUILTIN_1(6, key_held, "key-held?");
-            BUILTIN_BIN_OP(7, -, "-");
-            BUILTIN_7(8, fill_triangle, "fill-triangle");
-            BUILTIN_BIN_OP(9, >>, ">>");
-            BUILTIN_1(10, sin_fxp, "sin@");
-            BUILTIN_5(11, draw_line, "draw-line");
-            BUILTIN_BIN_OP(12, /, "/");
-            BUILTIN_BIN_OP(13, ==, "=");
-            BUILTIN_BIN_OP(14, >, ">");
-            BUILTIN_BIN_OP(15, &&, "and");
-            BUILTIN_1(16, key_pressed, "key-pressed?");
-            BUILTIN_1(17, key_released, "key-released?");
-            BUILTIN_1(18, cos_fxp, "cos@");
-            BUILTIN_2(19, mul_fxp, "mul@");
+            switch ((uint8_t) op1) {
+            // math
+            BUILTIN_BIN_OP(128, +, "+");
+            BUILTIN_BIN_OP(129, -, "-");
+            BUILTIN_BIN_OP(130, *, "*");
+            BUILTIN_BIN_OP(131, /, "/");
+            BUILTIN_BIN_OP(132, %, "%");
+            BUILTIN_BIN_OP(133, <<, "<<");
+            BUILTIN_BIN_OP(134, >>, ">>");
+            BUILTIN_2(135, mul_fxp, "mul@");
+            BUILTIN_1(136, sin_fxp, "sin@");
+            BUILTIN_1(137, cos_fxp, "cos@");
+
+            // comparison + logic
+            BUILTIN_BIN_OP(144, <, "<");
+            BUILTIN_BIN_OP(145, <=, "<=");
+            BUILTIN_BIN_OP(146, ==, "=");
+            BUILTIN_BIN_OP(147, !=, "!=");
+            BUILTIN_BIN_OP(148, >, ">");
+            BUILTIN_BIN_OP(149, >=, ">=");
+            BUILTIN_UNARY_OP(150, !, "not");
+            BUILTIN_BIN_OP(151, &&, "and");
+            BUILTIN_BIN_OP(152, ||, "or");
+
+            // graphics
+            BUILTIN_5(176, draw_line, "draw-line");
+            BUILTIN_5(177, fill_rect, "fill-rect");
+            BUILTIN_7(178, fill_triangle, "fill-triangle");
+            BUILTIN_1(179, pause_frames, "pause-frames");
+
+            // keyboard
+            BUILTIN_1(192, key_pressed, "key-pressed?");
+            BUILTIN_1(193, key_released, "key-released?");
+            BUILTIN_1(194, key_held, "key-held?");
             default:
-                printf("  unhandled, sorry\n");
+                printf("  invalid function\n");
                 exit(0);
             }
             break;
@@ -219,7 +246,7 @@ void stak_exec(Module const* mod, Thread* thr) {
             break;
 
         default:
-            printf("  unhandled, sorry\n");
+            printf("  opcode error %d\n", opcode);
             exit(0);
         }
     }

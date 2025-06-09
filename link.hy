@@ -233,7 +233,7 @@
             (f.write (struct.pack "b" (get OPCODE-NUMBERS opcode)))
             (f.write (struct.pack "h" #* operands)))
           (for [b [(get OPCODE-NUMBERS opcode) #* operands]]
-            (f.write (struct.pack "b" b)))))
+            (f.write (struct.pack "B" b)))))
     )
 
     (os.rename (+ output ".tmp") output))
