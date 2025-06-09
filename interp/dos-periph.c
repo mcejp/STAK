@@ -401,7 +401,7 @@ void frame_start(void) {
             break;
         case 0x001D:  // LCtrl
         case 0x009D:
-            UPDATE_KEY(KEY_A);
+            UPDATE_KEY(KEY_CTRL);
             break;
         case 0x0048:
         case 0x00C8:

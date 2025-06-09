@@ -7,7 +7,7 @@ enum {
     KEY_DOWN,
     KEY_LEFT,
     KEY_RIGHT,
-    KEY_A,
+    KEY_CTRL,
     KEY_MAX
 };
 

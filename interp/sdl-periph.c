@@ -305,7 +305,7 @@ void frame_start(void) {
             case SDLK_DOWN:     update_key(KEY_DOWN, pressed); break;
             case SDLK_LEFT:     update_key(KEY_LEFT, pressed); break;
             case SDLK_RIGHT:    update_key(KEY_RIGHT, pressed); break;
-            case 'x':           update_key(KEY_A, pressed); break;
+            case SDLK_LCTRL:    update_key(KEY_CTRL, pressed); break;
             }
 
             break;

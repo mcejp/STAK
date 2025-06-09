@@ -23,5 +23,5 @@
     "KEY:DOWN": 1,
     "KEY:LEFT": 2,
     "KEY:RIGHT": 3,
-    "KEY:A": 4
+    "KEY:CTRL": 4
 }

@@ -114,7 +114,7 @@ Keyboard input
   (define KEY:DOWN  <unspecified>)
   (define KEY:LEFT  <unspecified>)
   (define KEY:RIGHT <unspecified>)
-  (define KEY:A     <unspecified>)
+  (define KEY:CTRL  <unspecified>)
 
   (key-pressed?  key)
   (key-released? key)
