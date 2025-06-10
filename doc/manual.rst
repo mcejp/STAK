@@ -38,10 +38,20 @@ Fixed-point arithmetic
 
 .. code-block::
 
+  (from-int@ value)
+  (to-int value@)
+
+
+Convert between 16-bit integer and 10.6 fixed-point format. Equivalent to shifting left and right by 6 bits, respectively.
+
+
+.. code-block::
+
   (mul@ a b)
 
 
 Multiply values and shift down by 6 bits. The multiplication is computed in full 22-bit resolution. Therefore, ``(mul@ 32767 64)`` will produce the correct result (32767).
+
 
 .. code-block::
 

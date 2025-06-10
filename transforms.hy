@@ -3,6 +3,21 @@
   hy.models [Expression]
   hy.model-patterns [NoParseError pexpr sym whole FORM SYM])
 
+(defn transform-expression [form]
+  (cond
+  ;; (from-int@ <value>)
+  (setx parsed (maybe-parse form (whole [(sym "from-int@") FORM]))) (do
+    (setv value parsed)
+    `(<< ~value 6))
+
+  ;; (to-int <value@>)
+  (setx parsed (maybe-parse form (whole [(sym "to-int") FORM]))) (do
+    (setv value parsed)
+    `(>> ~value 6))
+
+  ;; default return
+  True form))
+
 (defn transform-statement [form]
   (cond
   ;; (dotimes (<variable> [<from>] <to>) <body> ...)

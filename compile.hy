@@ -14,7 +14,7 @@
 
 (import
   models [CompiledFunction Unit]
-  transforms [maybe-parse transform-statement]
+  transforms [maybe-parse transform-expression transform-statement]
   write [write])
 
 (defclass [dataclass] CompilationContext []
@@ -55,6 +55,9 @@
   (defn produces-values [count]
     (when (!= expected-values count)
       (ctx.error f"Expected {expected-values} values, but form produces {count}" expr)))
+
+  ;; expand non-core forms
+  (setv expr (transform-expression expr))
 
   (cond
     (isinstance expr Integer) (do
