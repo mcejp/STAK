@@ -1,5 +1,7 @@
 #include "periph.h"
 
+#include <stdlib.h>
+
 #define FXP_FRAC_BITS 6
 
 // See https://github.com/mcejp/fixed-point-math/blob/main/sin_cos.cpp
@@ -56,3 +58,12 @@ int mul_fxp(Thread* thr, int a, int b) {
     return ((int32_t)a * b) >> FXP_FRAC_BITS;
 }
 #endif
+
+int do_random(Thread* thr) {
+    return rand() & 0x7fff;
+}
+
+int set_random_seed(Thread* thr, int seed) {
+    srand(seed);
+    return 0;
+}

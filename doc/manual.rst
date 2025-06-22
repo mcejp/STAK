@@ -130,6 +130,14 @@ Keyboard input
   (key-released? key)
   (key-held?     key)
 
+Random numbers
+--------------
+
+.. code-block::
+
+  (random)
+  (set-random-seed! seed)
+
 
 Special forms
 =============

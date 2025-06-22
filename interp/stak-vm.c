@@ -69,6 +69,12 @@ void stak_exec(Module const* mod, Thread* thr) {
 
         // define some helper macros for the built-in library
 
+#define BUILTIN_0(id, c_name, name) case id:\
+                TR(("    (" name ")\n")); \
+                ret_val = c_name(thr); \
+                PUSH(ret_val); \
+                break;
+
 #define BUILTIN_1(id, c_name, name) case id:\
                 thr->sp -= 1; \
                 TR(("    (" name " %d)\n", stack[thr->sp])); \
@@ -151,6 +157,10 @@ void stak_exec(Module const* mod, Thread* thr) {
             BUILTIN_1(192, key_pressed, "key-pressed?");
             BUILTIN_1(193, key_released, "key-released?");
             BUILTIN_1(194, key_held, "key-held?");
+
+            // random
+            BUILTIN_0(208, do_random, "random");
+            BUILTIN_1(209, set_random_seed, "set-random-seed!");
             default:
                 printf("  invalid function\n");
                 exit(0);

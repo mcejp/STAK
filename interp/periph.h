@@ -27,3 +27,6 @@ int key_released(Thread* thr, int index);
 int sin_fxp(Thread* thr, int angle);
 int cos_fxp(Thread* thr, int angle);
 int mul_fxp(Thread* thr, int a, int b);
+
+int do_random(Thread* thr);
+int set_random_seed(Thread* thr, int seed);

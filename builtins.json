@@ -28,5 +28,8 @@
 
     "key-pressed?": {"id": 192, "argc": 1, "retc": 1},
     "key-released?": {"id": 193, "argc": 1, "retc": 1},
-    "key-held?": {"id": 194, "argc": 1, "retc": 1}
+    "key-held?": {"id": 194, "argc": 1, "retc": 1},
+
+    "random": {"id": 208, "argc": 0, "retc": 1},
+    "set-random-seed!": {"id": 209, "argc": 1, "retc": 1}
 }
