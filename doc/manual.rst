@@ -142,6 +142,22 @@ Random numbers
 Special forms
 =============
 
+cond
+----
+
+.. code-block::
+
+  (cond
+    (< x   0) (set! y -1)
+    (> x 255) (set! y  1)
+            1 (set! y  0))
+
+``cond`` can be used both as an expression and a statement.
+
+When used as expression, make sure the last clause is a "catch-all".
+Otherwise you will get an error saying that the form "produces 0 values".
+
+
 define
 ------
 

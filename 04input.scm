@@ -6,6 +6,7 @@
   (define y (/ (- H h) 2))
   (define speed 4)
 
+  ;; clear screen
   (fill-rect bk-color 0 0 W H)
 
   (while 1
@@ -16,8 +17,14 @@
     ;; erase
     (fill-rect bk-color x y w h)
 
-    (when (key-held? KEY:UP)    (set! y (- y speed)))
-    (when (key-held? KEY:DOWN)  (set! y (+ y speed)))
-    (when (key-held? KEY:LEFT)  (set! x (- x speed)))
-    (when (key-held? KEY:RIGHT) (set! x (+ x speed)))
+    ;; movement
+    (when (key-held? KEY:UP)    (set! y (clip (- y speed) 0 (- H h))))
+    (when (key-held? KEY:DOWN)  (set! y (clip (+ y speed) 0 (- H h))))
+    (when (key-held? KEY:LEFT)  (set! x (clip (- x speed) 0 (- W w))))
+    (when (key-held? KEY:RIGHT) (set! x (clip (+ x speed) 0 (- W w))))
     ))
+
+(define (clip val min max)
+  (cond (< val min) min
+        (> val max) max
+                  1 val))

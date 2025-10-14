@@ -32,10 +32,10 @@
                  0                  0))
     (pause-frames 1)
 
-    (when (key-held? KEY:RIGHT) (set! half-length (+ half-length 1)))
-    (when (key-held? KEY:LEFT)  (set! half-length (- half-length 1)))
-    (when (key-held? KEY:UP)    (set! speed (+ speed 16)))
-    (when (key-held? KEY:DOWN)  (set! speed (- speed 16)))
+    (cond (key-held? KEY:RIGHT) (set! half-length (+ half-length 1))
+          (key-held? KEY:LEFT)  (set! half-length (- half-length 1)))
+    (cond (key-held? KEY:UP)    (set! speed (+ speed 16))
+          (key-held? KEY:DOWN)  (set! speed (- speed 16)))
 
     (set! angle (+ angle speed))))
 

@@ -45,6 +45,20 @@
     ;; general case
     (ctx.emit 'pushconst value)))
 
+(defn iterate-with-first-and-last [lst]
+  ;; usage: (for [#(my-item is-first is-last) (iterate-with-first-and-last my-list)] ...)
+  ;;
+  ;; could be implemented differently to support non-list iterables
+  ;; but not needed right now
+  (let [n (len lst)]
+    (for [#(i item) (enumerate lst)]
+      (yield #(item (= i 0) (= i (- n 1)))))))
+
+(defn pairwise [lst]
+  (assert (= 0 (% (len lst) 2)))
+  (let [it (iter lst)]
+    (list (zip it it))))
+
 ;; returns number of actually produced values
 (defn compile-expression [ctx expr [expected-values 1]]
   (setv builtin-constants ctx.builtin-constants)
@@ -53,12 +67,15 @@
   (setv output ctx.output)
   (setv produced-values None)
 
-  (defn produces-values [count]
-    (when (is-not expected-values None)
-      (when (!= expected-values count)
-        (ctx.error f"Expected {expected-values} values, but form produces {count}" expr)))
+  (defn produces-values [count [blame-expr expr]]
+    (when (and (is-not expected-values None)
+               (!= expected-values count))
+        (ctx.error f"Expected {expected-values} values, but form produces {count}" blame-expr))
 
     (nonlocal produced-values)
+    (when (and (is-not produced-values None)
+               (!= produced-values count))
+        (ctx.error f"Mismatched number of produced values: previously {produced-values}, now {count}" blame-expr))
     (setv produced-values count))
 
   ;; expand non-core forms
@@ -67,6 +84,74 @@
   (setv maybe-parse* (partial maybe-parse expr))
 
   (cond
+    ;; (cond <cond1> <body1> <cond2> <body2> ...)
+    (setx parsed (maybe-parse* (whole [(sym "cond") (many FORM)]))) (do
+      (setv clauses (pairwise parsed))
+
+      ;; compiles to:
+      ;;   evaluate cond1
+      ;;   jz past_body1
+      ;;   body1
+      ;;   jmp end
+      ;; past_body1:
+      ;;   evaluate cond2
+      ;;   jz past_body2
+      ;;   body2
+      ;;   (jmp end)
+      ;; end:
+
+      ;; perform a rudimentary analysis of the clauses;
+      ;; this is not only useful for optimization, but also necessary to see if we can always produce a value
+      (setv clauses-plus [])
+      (setv have-default False)
+
+      (for [#(clause is-first is-last) (iterate-with-first-and-last clauses)]
+        (let [#(cond body) clause
+              always-true? (and (isinstance cond Integer) (= (int cond) 1))]
+          ;; catch-all clause must be the last one
+          (when (and always-true? (not is-last))
+            (ctx.error "catch-all clause in 'cond' must be last" expr))
+          (clauses-plus.append #(cond body is-first is-last always-true?))
+          (when always-true?
+            (setv have-default True))))
+
+      ;; cond will only produce values if there is a 'catch-all' branch (condition is just `1`)
+      (when (not have-default)
+        (produces-values 0))
+
+      ;; finally generate code
+      (setv jmps [])
+
+      (for [#(cond body is-first is-last always-true?) clauses-plus]
+        ;; insert evaluation of condition and jump to next clause
+        (unless always-true?
+          (compile-expression ctx cond)
+          (setv jz (ctx.emit 'jz None))
+          (setv after-jz (len output)))
+
+        (let [num-values-on-stack (compile-statements ctx [body])]
+          (if have-default
+            ;; recall that this also ensures a consistent number of values across branches
+            (produces-values num-values-on-stack :blame-expr body)
+            ;; no default -> no values shall be returned -> clean stack after each branch
+            (for [i (range num-values-on-stack)]
+              (ctx.emit 'drop))))
+
+        ;; insert (placeholder) jump to end
+        (unless is-last
+          (let [jmp (ctx.emit 'jmp None)
+                pos (len output)]
+            (.append jmps #(pos jmp))))
+
+        ;; fix up jump to next clause
+        (unless always-true?
+          (setv (get jz 1) (- (len output) after-jz))))
+
+      ;; fix up those jumps to end
+      (for [#(pos jmp) jmps]
+        (setv (get jmp 1) (- (len output) pos)))
+      )
+
     ;; (values <value> ...)
     (setx parsed (maybe-parse* (whole [(sym "values") (many FORM)]))) (do
       (setv values parsed)
@@ -75,6 +160,7 @@
       (for [expr values]
         (compile-expression ctx expr)))
 
+    ;; integer literal
     (isinstance expr Integer) (do
       (produces-values 1)
       (compile-getconst ctx (int expr)))
@@ -128,7 +214,7 @@
   (setv function ctx.function)
   (setv output ctx.output)
 
-  (setv num-values-on-stack False)
+  (setv num-values-on-stack 0)
 
   (for [form statement-list]
     ;; discard any result of previous statement
@@ -185,6 +271,11 @@
           (ctx.emit 'setlocal (get ctx.locals name)))
 
         (setv num-values-on-stack 0))
+
+      ;; (do <body> ...)
+      (setx parsed (maybe-parse* (whole [(sym "do") (many FORM)]))) (do
+        (let [body parsed]
+          (setv num-values-on-stack (compile-statements ctx body))))
 
       ;; (set! <variable> <value>)
       (setx parsed (maybe-parse* (whole [(sym "set!") SYM FORM]))) (do
