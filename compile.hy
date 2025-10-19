@@ -45,16 +45,21 @@
     ;; general case
     (ctx.emit 'pushconst value)))
 
-;; returns nothing
+;; returns number of actually produced values
 (defn compile-expression [ctx expr [expected-values 1]]
   (setv builtin-constants ctx.builtin-constants)
   (setv unit ctx.unit)
   (setv function ctx.function)
   (setv output ctx.output)
+  (setv produced-values None)
 
   (defn produces-values [count]
-    (when (!= expected-values count)
-      (ctx.error f"Expected {expected-values} values, but form produces {count}" expr)))
+    (when (is-not expected-values None)
+      (when (!= expected-values count)
+        (ctx.error f"Expected {expected-values} values, but form produces {count}" expr)))
+
+    (nonlocal produced-values)
+    (setv produced-values count))
 
   ;; expand non-core forms
   (setv expr (transform-expression expr))
@@ -67,11 +72,14 @@
     (isinstance expr Expression) (do
       ;; function call
       (setv [name #* args] expr)
-      ; (print "CALL" name args)
       (assert (isinstance name Symbol))
       (for [arg args]
-        (compile-expression ctx arg)
-        )
+        (compile-expression ctx arg))
+      ;; if by now we don't know how many values are expected, assume 1
+      (when (is expected-values None)
+        (setv expected-values 1))
+
+      (produces-values expected-values)
       (ctx.emit 'call (str name) (len args) expected-values)
       )
 
@@ -98,7 +106,10 @@
 
     True (raise (Exception f"unhandled form {expr}"))
     )
-  )
+
+  ;; before returning, the number of produced values must be known
+  (assert (is-not produced-values None))
+  produced-values)
 
 ;; returns number of values left over on the stack
 (defn compile-statements [ctx statement-list]
@@ -245,8 +256,9 @@
 
       True (do
         ;; compile expression
-        (compile-expression ctx form)
-        (setv num-values-on-stack 1))
+        ;; at this point we don't prescribe how many values it should produce
+        (let [num-values (compile-expression ctx form :expected-values None)]
+          (setv num-values-on-stack num-values)))
       )
     )
 
