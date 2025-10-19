@@ -279,8 +279,13 @@
           (let [filename (.removeprefix inp "watch ")]
             (try
               (watch-file filename (fn []
+                ;; source changed; reset compiler state and re-run
                 (.reset session)
-                (execute-file session filename)))
+                (try
+                  (execute-file session filename)
+                  (except [exc Exception]
+                    ;; in case of an error, print it, but keep watching the file
+                    (print exc)))))
               (except [exc FileNotFoundError]
                 (print exc))
               (except [KeyboardInterrupt]
