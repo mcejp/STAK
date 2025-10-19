@@ -35,7 +35,7 @@
       ;; If <to> is an expression, evaluate it only once and store it
       ;; in a temporary variable.
       (let [end (hy.gensym "max")]
-        `(when 1
+        `(do
           (define ~var ~from)
           (define ~end ~to)
           (while (< ~var ~end)
@@ -43,11 +43,17 @@
             (set! ~var (+ ~var 1)))))
       ;; Otherwise, <to> is either a literal or a symbol, which is fine to use as-is.
       ;; We do this optimization so that the compiler doesn't have to.
-      `(when 1
+      `(do
         (define ~var ~from)
         (while (< ~var ~to)
           ~@body
           (set! ~var (+ ~var 1))))))
+
+  ;; (when <condition> <body> ...)
+  (setx parsed (maybe-parse form (whole [(sym "when") FORM (many FORM)]))) (do
+    (setv [condition body] parsed)
+
+    `(cond ~condition (do ~@body)))
 
   ;; default return
   True form))

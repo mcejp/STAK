@@ -294,30 +294,6 @@
 
         (setv num-values-on-stack 0))
 
-      ;; (when <cond> <body> ...)
-      ;; this should probably just be a macro
-      (setx parsed (maybe-parse* (whole [(sym "when") FORM (many FORM)]))) (do
-        (setv [cond body] parsed)
-
-        ;; TODO: how to make this not suck?
-
-        ;; compiles to:
-        ;;   evaluate condition
-        ;;   jz end
-        ;;   body
-        ;; end:
-        (compile-expression ctx cond)
-        (setv jz (ctx.emit 'jz None))
-        (setv after-jz (len output))
-        (setv num-values-on-stack
-          (compile-statements ctx body))
-        (for [i (range num-values-on-stack)]
-          (ctx.emit 'drop))
-        (setv (get jz 1) (- (len output) after-jz))
-
-        (setv num-values-on-stack 0)
-        )
-
       ;; (while <cond> <body> ...)
       (setx parsed (maybe-parse* (whole [(sym "while") FORM (many FORM)]))) (do
         (setv [cond body] parsed)
