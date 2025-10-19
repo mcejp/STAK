@@ -64,7 +64,17 @@
   ;; expand non-core forms
   (setv expr (transform-expression expr))
 
+  (setv maybe-parse* (partial maybe-parse expr))
+
   (cond
+    ;; (values <value> ...)
+    (setx parsed (maybe-parse* (whole [(sym "values") (many FORM)]))) (do
+      (setv values parsed)
+
+      (produces-values (len values))
+      (for [expr values]
+        (compile-expression ctx expr)))
+
     (isinstance expr Integer) (do
       (produces-values 1)
       (compile-getconst ctx (int expr)))
@@ -192,15 +202,6 @@
           True (ctx.error f"undefined variable" target))
 
         (setv num-values-on-stack 0))
-
-      ;; (values <value> ...)
-      (setx parsed (maybe-parse* (whole [(sym "values") (many FORM)]))) (do
-        (setv values parsed)
-
-        (for [expr values]
-          (compile-expression ctx expr))
-
-        (setv num-values-on-stack (len values)))
 
       ;; (when <cond> <body> ...)
       ;; this should probably just be a macro
