@@ -14,6 +14,7 @@
   hyrule [dec parse-args]
   hyrule.hypprint [pprint]
   serial
+  tqdm
 
   compile
   link)
@@ -47,8 +48,9 @@
       (@send (f.getvalue)))))
 
 (defclass SerialTransport [StreamTransport]
-  (meth __init__ [#* args]
-    (setv @ser (serial.Serial #* args)))
+  (meth __init__ [port baud #* args]
+    (setv @baud baud)
+    (setv @ser (serial.Serial port baud #* args)))
 
   (meth close []
     (@ser.close))
@@ -57,7 +59,18 @@
     (@ser.read count))
 
   (meth send [data]
-    (@ser.write data)))
+    ;; if transmission is due to take more than a half-second, display a progress bar
+    (defn tqdm-chunked [sliceable chunk-size #* args #** kwargs]
+      (let [progress (tqdm.tqdm :total (len sliceable) #* args #** kwargs)]
+        (for [offset (range 0 (len sliceable) chunk-size)]
+          (let [chunk (cut data offset (+ offset chunk-size))]
+            (yield chunk)
+            (progress.update (len chunk))))))
+
+    (if (>= (* (len data) 8) (* 0.5 @baud))
+      (for [chunk (tqdm-chunked data :chunk-size 100 :desc "Transferring")]
+        (@ser.write chunk))
+      (@ser.write data))))
 
 (defclass SocketTransport [StreamTransport]
   (meth __init__ [address-tuple]
