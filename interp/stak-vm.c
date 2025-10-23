@@ -13,6 +13,7 @@ static V stack[STACK_SIZE];
 
 #define CURR_FUNC (mod->functions[thr->func_index])
 #define DROP() --thr->sp
+#define TOP() stack[thr->sp - 1]
 #define POP() stack[--thr->sp]
 #define PUSH(x) stack[thr->sp++] = (x)
 
@@ -65,7 +66,7 @@ void stak_exec(Module const* mod, Thread* thr) {
             // It will require changing the compiler, though, because it means the encoding
             // will differ between user function calls and built-in function calls.
             op1 = bc[thr->pc++];    // ext_func_idx
-            TR(("  call/ext %d\n", op1));
+            TR(("  call/ext %d\n", (uint8_t) op1));
 
         // define some helper macros for the built-in library
 
@@ -129,7 +130,7 @@ void stak_exec(Module const* mod, Thread* thr) {
             BUILTIN_BIN_OP(129, -, "-");
             BUILTIN_BIN_OP(130, *, "*");
             BUILTIN_BIN_OP(131, /, "/");
-            BUILTIN_BIN_OP(132, %, "%");
+            BUILTIN_BIN_OP(132, %, "%%");
             BUILTIN_BIN_OP(133, <<, "<<");
             BUILTIN_BIN_OP(134, >>, ">>");
             BUILTIN_2(135, mul_fxp, "mul@");
@@ -180,7 +181,7 @@ void stak_exec(Module const* mod, Thread* thr) {
 
         case OP_GETLOCAL:
             op1 = bc[thr->pc++];    // index
-            TR(("  getlocal %d\n", op1));
+            TR(("  getlocal %d\t(value=%d)\n", op1, stack[thr->fp + op1]));
             PUSH(stack[thr->fp + op1]);
             break;
 
@@ -218,12 +219,13 @@ void stak_exec(Module const* mod, Thread* thr) {
             // rightmost:   [thr->sp - 1]    => [thr->sp - nloc - argc - retc + retc - 1]
             // ...
             // leftmost:    [thr->sp - retc] => [thr->sp - nloc - argc - retc]
+            thr->sp -= op1;
             for (ret_val = 0; ret_val < op1; ret_val++) {
-                thr->sp--;
                 stack[thr->sp - CURR_FUNC.num_locals - CURR_FUNC.argc] = stack[thr->sp];
+                thr->sp++;
             }
 
-            thr->sp = thr->sp - CURR_FUNC.num_locals - CURR_FUNC.argc + op1;
+            thr->sp = thr->sp - CURR_FUNC.num_locals - CURR_FUNC.argc;
 
             if (thr->frame == 0) {
                 TR(("  return from main -> %d\n", ret_val));
@@ -246,7 +248,7 @@ void stak_exec(Module const* mod, Thread* thr) {
 
         case OP_SETLOCAL:
             op1 = bc[thr->pc++];    // index
-            TR(("  setlocal %d\n", op1));
+            TR(("  setlocal %d\t(value=%d)\n", op1, TOP()));
             stack[thr->fp + op1] = POP();
             break;
 

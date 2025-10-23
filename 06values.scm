@@ -1,0 +1,11 @@
+(define (data i)
+  (cond (= i 0) (values  30  40 COLOR:RED)
+        (= i 1) (values  60  60 COLOR:GREEN)
+        (= i 2) (values 120  80 COLOR:BLUE)
+              1 (values 180 150 COLOR:MAGENTA)))
+
+(define (main)
+  (dotimes (i 4)
+    (define x h color (data i))
+    (fill-rect color x (- H h) 80 h))
+  (pause-frames 100))
