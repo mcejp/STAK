@@ -5,10 +5,18 @@
 
 (defn transform-expression [form]
   (cond
+  ;; (add1 <value@>)
+  (setx parsed (maybe-parse form (whole [(sym "add1") FORM]))) (do
+    `(+ ~parsed 1))
+
   ;; (from-int@ <value>)
   (setx parsed (maybe-parse form (whole [(sym "from-int@") FORM]))) (do
     (setv value parsed)
     `(<< ~value 6))
+
+  ;; (sub1 <value@>)
+  (setx parsed (maybe-parse form (whole [(sym "sub1") FORM]))) (do
+    `(- ~parsed 1))
 
   ;; (to-int <value@>)
   (setx parsed (maybe-parse form (whole [(sym "to-int") FORM]))) (do

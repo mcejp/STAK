@@ -1,5 +1,5 @@
 (define (get-basic-color-count)
-  (+ COLOR:WHITE 1))
+  (add1 COLOR:WHITE))
 
 (define (clear-screen color)
   (fill-rect color 0 0 W H)

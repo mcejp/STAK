@@ -22,7 +22,7 @@
       (line i 60 0 90 0))
     (pause-frames 1)
 
-    (set! angle (+ angle 1))))
+    (set! angle (add1 angle))))
 
 (define (make-rotation-matrix angle)
   ;; sin@ and cos@ return result in 10.6 fixed-point format

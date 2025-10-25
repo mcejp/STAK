@@ -33,6 +33,15 @@ Basic arithmetics
 
 These work as in C. The value type is always int16.
 
+Increment/decrement by 1
+------------------------
+
+.. code-block::
+
+  (add1 a)
+  (sub1 a)
+
+
 Fixed-point arithmetic
 ----------------------
 
