@@ -60,53 +60,45 @@ void stak_exec(Module const* mod, Thread* thr) {
             thr->sp += mod->functions[op1].num_locals;
             break;
 
-        case OP_CALL_EXT:
-            // It would make perfect sense to skip the opcode altogether and just
-            // encode ext_func_idx (as long as it starts after all other opcodes).
-            // It will require changing the compiler, though, because it means the encoding
-            // will differ between user function calls and built-in function calls.
-            op1 = bc[thr->pc++];    // ext_func_idx
-            TR(("  call/ext %d\n", (uint8_t) op1));
-
         // define some helper macros for the built-in library
 
 #define BUILTIN_0(id, c_name, name) case id:\
-                TR(("    (" name ")\n")); \
+                TR(("  " name "\n")); \
                 ret_val = c_name(thr); \
                 PUSH(ret_val); \
                 break;
 
 #define BUILTIN_1(id, c_name, name) case id:\
                 thr->sp -= 1; \
-                TR(("    (" name " %d)\n", stack[thr->sp])); \
+                TR(("  " name " %d\n", stack[thr->sp])); \
                 ret_val = c_name(thr, stack[thr->sp]); \
                 PUSH(ret_val); \
                 break;
 
 #define BUILTIN_UNARY_OP(id, operator, name) case id:\
                 thr->sp -= 1; \
-                TR(("    (" name " %d)\n", stack[thr->sp])); \
+                TR(("  " name " %d\n", stack[thr->sp])); \
                 ret_val = operator stack[thr->sp]; \
                 PUSH(ret_val); \
                 break;
 
 #define BUILTIN_2(id, c_name, name) case id:\
                 thr->sp -= 2; \
-                TR(("    (" name " %d %d)\n", stack[thr->sp], stack[thr->sp + 1])); \
+                TR(("  " name " %d %d\n", stack[thr->sp], stack[thr->sp + 1])); \
                 ret_val = c_name(thr, stack[thr->sp], stack[thr->sp + 1]); \
                 PUSH(ret_val); \
                 break;
 
 #define BUILTIN_BIN_OP(id, operator, name) case id:\
                 thr->sp -= 2; \
-                TR(("    (%d " name " %d)\n", stack[thr->sp], stack[thr->sp + 1])); \
+                TR(("  %d " name " %d\n", stack[thr->sp], stack[thr->sp + 1])); \
                 ret_val = stack[thr->sp] operator stack[thr->sp + 1]; \
                 PUSH(ret_val); \
                 break;
 
 #define BUILTIN_5(id, c_name, name) case id:\
                 thr->sp -= 5; \
-                TR(("    (" name " %d %d %d %d %d)\n", stack[thr->sp], stack[thr->sp + 1], \
+                TR(("  " name " %d %d %d %d %d\n", stack[thr->sp], stack[thr->sp + 1], \
                         stack[thr->sp + 2], stack[thr->sp + 3], stack[thr->sp + 4])); \
                 ret_val = c_name(thr, stack[thr->sp], stack[thr->sp + 1], \
                         stack[thr->sp + 2], stack[thr->sp + 3], stack[thr->sp + 4]); \
@@ -115,7 +107,7 @@ void stak_exec(Module const* mod, Thread* thr) {
 
 #define BUILTIN_7(id, c_name, name) case id:\
                 thr->sp -= 7; \
-                TR(("    (" name " %d %d %d %d %d %d %d)\n", stack[thr->sp], stack[thr->sp + 1], \
+                TR(("  " name " %d %d %d %d %d %d %d\n", stack[thr->sp], stack[thr->sp + 1], \
                         stack[thr->sp + 2], stack[thr->sp + 3], stack[thr->sp + 4], \
                         stack[thr->sp + 5], stack[thr->sp + 6])); \
                 ret_val = c_name(thr, stack[thr->sp], stack[thr->sp + 1], \
@@ -124,7 +116,6 @@ void stak_exec(Module const* mod, Thread* thr) {
                 PUSH(ret_val); \
                 break;
 
-            switch ((uint8_t) op1) {
             // math
             BUILTIN_BIN_OP(128, +, "+");
             BUILTIN_BIN_OP(129, -, "-");
@@ -162,11 +153,6 @@ void stak_exec(Module const* mod, Thread* thr) {
             // random
             BUILTIN_0(208, do_random, "random");
             BUILTIN_1(209, set_random_seed, "set-random-seed!");
-            default:
-                printf("  invalid function\n");
-                exit(0);
-            }
-            break;
 
         case OP_DROP:
             TR(("  drop\n"));

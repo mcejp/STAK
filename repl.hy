@@ -149,15 +149,13 @@
         ))
 
     (setv unit (compile.compile-unit builtin-constants
+                                     builtin-functions
                                      filename
                                      program
                                      :repl-globals (list (.keys @program-state.global-table))))
     (print unit)
 
     ;; link
-
-    (with [f (open "builtins.json")]
-      (setv builtin-functions (json.load f)))
 
     (setv link-info (link.link-program [unit]
                                        :output "lnk.tmp"
@@ -240,6 +238,9 @@
 
 (with [f (open "constants.json")]
   (setv builtin-constants (json.load f)))
+
+(with [f (open "builtins.json")]
+  (setv builtin-functions (json.load f)))
 
 (cond
   ;; no target provided (launch our own)

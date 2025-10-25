@@ -19,6 +19,7 @@
 
 (defclass [dataclass] CompilationContext []
   #^ object builtin-constants
+  #^ dict builtin-functions
   #^ str filename
   #^ CompiledFunction function
   #^ dict locals
@@ -62,6 +63,7 @@
 ;; returns number of actually produced values
 (defn compile-expression [ctx expr [expected-values 1]]
   (setv builtin-constants ctx.builtin-constants)
+  (setv builtin-functions ctx.builtin-functions)
   (setv unit ctx.unit)
   (setv function ctx.function)
   (setv output ctx.output)
@@ -167,17 +169,29 @@
 
     (isinstance expr Expression) (do
       ;; function call
-      (setv [name #* args] expr)
-      (assert (isinstance name Symbol))
+      (setv [name-sym #* args] expr)
+      (assert (isinstance name-sym Symbol))
+      (setv name (str name-sym))
+
+      ;; is a built-in?
+      (setv builtin (.get builtin-functions name None))
+
       (for [arg args]
         (compile-expression ctx arg))
-      ;; if by now we don't know how many values are expected, assume 1
-      (when (is expected-values None)
-        (setv expected-values 1))
 
-      (produces-values expected-values)
-      (ctx.emit 'call (str name) (len args) expected-values)
-      )
+      (lif builtin
+        (do
+          (unless (= (len args) (get builtin "argc"))
+                  (error f"Function '{name}' expects {f.argc} arguments, but {argc} were passed"))
+          (produces-values (get builtin "retc"))
+          (ctx.emit name-sym))
+        (do
+          ;; if by now we don't know how many values are expected, assume 1
+          (when (is expected-values None)
+            (setv expected-values 1))
+
+          (produces-values expected-values)
+          (ctx.emit 'call (str name) (len args) expected-values))))
 
     ;; symbol (constant, global, local variable)
     (isinstance expr Symbol) (do
@@ -346,6 +360,7 @@
   num-values-on-stack)
 
 (defn compile-unit [builtin-constants
+                    builtin-functions
                     filename
                     forms
                     [repl-globals None]]
@@ -380,6 +395,9 @@
         (setv [[target parameters] body] parsed)
         (setv name (str target))    ;; ugly
 
+        (when (in name builtin-functions)
+          (raise (Exception f"cannot redefine built-in function '{name}'")))
+
         ;; from the declared parameters, build initial list of local variables
         (setv locals (dfor [i param] (enumerate parameters) (str param) i))
 
@@ -390,6 +408,7 @@
                                          :body None))
 
         (setv ctx (CompilationContext :builtin-constants builtin-constants
+                                      :builtin-functions builtin-functions
                                       :filename filename
                                       :function function
                                       :locals locals
@@ -418,10 +437,16 @@
   (with [f (open "constants.json")]
     (setv builtin-constants (json.load f)))
 
+  (with [f (open "builtins.json")]
+    (setv builtin-functions (json.load f)))
+
   (with [f (open args.input)]
     (setv forms (hy.read-many f))
 
-    (setv unit (compile-unit builtin-constants (str args.input) forms)))
+    (setv unit (compile-unit builtin-constants
+                             builtin-functions
+                             (str args.input)
+                             forms)))
 
   (with [f (open (+ args.output ".tmp") "wt")]
     (f.write (write (unit.to-sexpr)))

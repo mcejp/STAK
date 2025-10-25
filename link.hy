@@ -57,8 +57,6 @@
 
   (for [unit units]
     (for [f unit.functions]
-      (when (in f.name builtin-functions)
-        (raise (Exception f"Cannot redefine built-in function '{f.name}'")))
       (when (in f.name function-table)
         (raise (Exception f"Multiple definitions of function '{f.name}'")))
 
@@ -88,7 +86,7 @@
       )
     )
 
-  ;; resolve calls to `call.func`, `call.ext`
+  ;; resolve function calls
   ;; resolve global var IDs
 
   (defn error [message]
@@ -105,22 +103,15 @@
             (unless (= produces retc)
               (error f"{retc} results were expected, but function '{name}' produces {produces}")))
 
-          (cond
-            (in name builtin-functions) (do
-              (setv info (get builtin-functions name))
-              (setv argc-expect (get info "argc"))
-              (unless (= argc argc-expect)
-                (error f"External function '{name}' expects {argc-expect} arguments, but {argc} were passed"))
-              (check-retc (get info "retc"))
-              ['call:ext (get info "id")]
-              )
-            (setx f (function-table.get name None)) (do
-              (unless (= argc f.argc)
-                (error f"Function '{name}' expects {f.argc} arguments, but {argc} were passed"))
-              (check-retc f.retc)
-              ['call:func f.id])
-            True (raise (Exception f"unresolved function {name}"))
-            ))
+          (try
+            (setv f (get function-table name))
+            (except [KeyError]
+              (raise (Exception f"unresolved function {name}") :from None)))
+
+          (unless (= argc f.argc)
+            (error f"Function '{name}' expects {f.argc} arguments, but {argc} were passed"))
+          (check-retc f.retc)
+          ['call f.id])
         ;; getglobal/setglobal
         (in (get insn 0) #{'getglobal 'setglobal}) (do
           (setv [opcode name] insn)
@@ -199,8 +190,7 @@
     'setglobal 4
     'getlocal 5
     'setlocal 6
-    'call:func 10
-    'call:ext 11
+    'call 10
     'ret 13
     'jmp 20
     'jz 21
@@ -213,27 +203,36 @@
       (setv main-func-idx (. function-table ["main"] id)))
 
     (with [f (open (+ output ".tmp") "wb")]
+      ;; helper function for writing binary data
+      (defn emit [format #* args]
+        (f.write (struct.pack format #* args)))
+
       ;; write header
-      (f.write (struct.pack "<HBBBxxx" bc-end
-                                      (len program.functions)
-                                      (len program.globals)
-                                      main-func-idx))
+      (emit "<HBBBxxx"
+            bc-end
+            (len program.functions)
+            (len program.globals)
+            main-func-idx)
       ;; functions
       (for [func program.functions]
-        (f.write (struct.pack "<BBH" func.argc func.num-locals func.bytecode-offset)))
+        (emit "<BBH" func.argc func.num-locals func.bytecode-offset))
       ;; globals
       (for [value program.globals]
-        (f.write (struct.pack "<h" value)))
+        (emit "<h" value))
       ;; bytecode
       (for [[opcode #* operands] program.bytecode]
         ;(f.write (bytes [(get OPCODE-NUMBERS opcode) #* operands])))
-        (if (in opcode #{'jmp 'jz 'pushconst})
-          (do
+        (cond
+          (in (str opcode) builtin-functions) (do
+            (assert (= (len operands) 0))
+            (emit "B" (get (get builtin-functions (str opcode)) "opcode")))
+          (in opcode #{'jmp 'jz 'pushconst}) (do
             ;; branch instructions & pushconst have a 16-bit operand
-            (f.write (struct.pack "b" (get OPCODE-NUMBERS opcode)))
-            (f.write (struct.pack "h" #* operands)))
-          (for [b [(get OPCODE-NUMBERS opcode) #* operands]]
-            (f.write (struct.pack "B" b)))))
+            (emit "b" (get OPCODE-NUMBERS opcode))
+            (emit "h" #* operands))
+          True (do
+            (for [b [(get OPCODE-NUMBERS opcode) #* operands]]
+              (emit "B" b)))))
     )
 
     (os.rename (+ output ".tmp") output))
