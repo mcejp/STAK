@@ -8,13 +8,13 @@ To get started, clone the repository and install prerequisites.
 
 Build the VM, build the examples and run them one by one:
 
-    make -C interp
+    make -C vm
     make
-    ./interp/interp 01fill.bc
-    ./interp/interp 02colors.bc
-    ./interp/interp 03loop.bc
-    ./interp/interp 04input.bc
-    ./interp/interp 05lines.bc
+    ./vm/stak 01fill.bc
+    ./vm/stak 02colors.bc
+    ./vm/stak 03loop.bc
+    ./vm/stak 04input.bc
+    ./vm/stak 05lines.bc
 
 Alternatively, having built the VM, drop into the REPL:
 
@@ -29,7 +29,7 @@ You will need the Open Watcom toolchain and correspondingly set up environment v
     export WATCOM=/opt/open-watcom-v2/rel
     export PATH=$WATCOM/binl64:$WATCOM/binl:$PATH
     export INCLUDE=$WATCOM/h
-    cd interp
+    cd vm
     make -f Makefile.dos
 
 To connect the REPL to DOSBox, launch the VM in one shell:

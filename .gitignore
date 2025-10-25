@@ -4,5 +4,5 @@
 *.o
 *.unit
 
-/interp/interp
-/interp/*.exe
+/vm/stak
+/vm/*.exe

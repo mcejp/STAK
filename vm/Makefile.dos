@@ -4,7 +4,7 @@ LDFLAGS=$(CFLAGS)
 # very approximately Pocket 8086 @ 10 MHz (depends on the program)
 CYCLES=-c "cycles 1200"
 
-all: interp.exe ifast.exe
+all: stak.exe stakfast.exe
 
 clean:
 	rm -f *.o *.BC *.EXE
@@ -18,19 +18,19 @@ dos-dbuf.o: dos-periph.c
 %.o: %.c
 	wcc $(CFLAGS) -fo=$@ $<
 
-interp.exe: debug.o dos-keyb.o interp.o dos-listener.o cmn-periph.o dos-dbuf.o stak-vm.o
+stak.exe: debug.o dos-keyb.o interp.o dos-listener.o cmn-periph.o dos-dbuf.o stak-vm.o
 	wcl $(LDFLAGS) -fe=$@ $^
 
-ifast.exe: debug.o dos-keyb.o interp.o dos-listener.o cmn-periph.o dos-unbuf.o stak-vm.o
+stakfast.exe: debug.o dos-keyb.o interp.o dos-listener.o cmn-periph.o dos-unbuf.o stak-vm.o
 	wcl $(LDFLAGS) -fe=$@ $^
 
-test: interp.exe
-	dosbox $(CYCLES) -c "MOUNT C ." -c "MOUNT D .." -c "C:" -c "interp.exe d:\flower.bc"
+test: stak.exe
+	dosbox $(CYCLES) -c "MOUNT C ." -c "MOUNT D .." -c "C:" -c "stak.exe d:\flower.bc"
 
-debug: interp.exe
-	dosbox $(CYCLES) -c "serial1=nullmodem port:5000 transparent:1" -c "MOUNT C ." -c "C:" -c "interp.exe -g"
+debug: stak.exe
+	dosbox $(CYCLES) -c "serial1=nullmodem port:5000 transparent:1" -c "MOUNT C ." -c "C:" -c "stak.exe -g"
 
-dosbox: interp.exe
+dosbox: stak.exe
 	dosbox $(CYCLES) -c "MOUNT C ." -c "MOUNT D .." -c "C:"
 
 .PHONY: all clean debug dosbox test

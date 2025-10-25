@@ -23,8 +23,8 @@ Module mod;
 Thread thr;
 
 void usage_exit(void) {
-    fprintf(stderr, "usage: interp <filename>\n");
-    fprintf(stderr, "       interp -g\n");
+    fprintf(stderr, "usage: stak <filename>\n");
+    fprintf(stderr, "       stak -g\n");
     exit(-1);
 }
 

@@ -245,7 +245,7 @@
 (cond
   ;; no target provided (launch our own)
   (is args.target None) (do
-    (setv process (Popen ["./interp/interp" "-g"]))
+    (setv process (Popen ["./vm/stak" "-g"]))
 
     ;; make sure interpreter doesn't outlive us
     (atexit.register process.terminate)

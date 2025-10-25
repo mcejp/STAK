@@ -37,7 +37,7 @@ static void swap_points(int* x1, int* y1, int* x2, int* y2) {
 void periph_init(void) {
 #ifdef DOUBLEBUF
     if (_dos_allocmem(SCRH * (SCRW / 16), &fb_segment) != 0) {
-        fputs("interp: failed to allocate back buffer", stderr);
+        fputs("stak: failed to allocate back buffer", stderr);
         exit(1);
     }
 #else
