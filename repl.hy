@@ -1,4 +1,5 @@
 (import
+  array
   atexit
   io
   json
@@ -19,7 +20,7 @@
   compile
   link)
 (require
-  hyrule [unless]
+  hyrule [ecase unless]
   hyrule.oop [meth])
 
 ;;;
@@ -33,6 +34,7 @@
 (setv
   OP:BEGIN-EXEC (ord "x")
   OP:SUSPEND    (ord "s")
+  OP:STATE      (ord "S")
   OP:WRITE-MEM  (ord "w"))
 
 ;; Stream-oriented transport -- need to do our own framing
@@ -134,7 +136,7 @@
     (.close @transport))
 
   (meth eval [program
-              execute
+              execute  ; one of: False "async" "sync"
               [filename "stdin"]]
     ;; If "main" exists in function table, erase it
     ;; When executing a stand-alone program, self.program-state will be empty,
@@ -187,9 +189,28 @@
       (write-memory t SEGMENT:FUNC  (* 4 (len @program-state.function-table)) functions-bytes)
       (write-memory t SEGMENT:GLOB  (* 2 (len @program-state.global-table))   globals-bytes)
 
-      (when execute
-        (t.send-frame (struct.pack "<BBB" OP:BEGIN-EXEC main-func-idx 0))
-        (expect t (bytes [OP:BEGIN-EXEC 0x7E]))))
+      (ecase execute
+        "async" (do
+          (t.send-frame (struct.pack "<BBBB" OP:BEGIN-EXEC main-func-idx 0 0))
+          (expect t (bytes [OP:BEGIN-EXEC 0x7E])))
+        "sync" (do
+          (t.send-frame (struct.pack "<BBBB" OP:BEGIN-EXEC main-func-idx 0 1))
+          (expect t (bytes [OP:BEGIN-EXEC 0x7E]))
+
+          ;; expecting: OP:STATE OP:SUSPEND <retc> <retv...>
+          (expect t (bytes [OP:STATE OP:SUSPEND]))
+          (let [retc       (ord (.recvall t 1))
+                retv-bytes (.recvall t (* 2 retc))]
+            (expect t (bytes [0x7E]))
+            ;; Note that array.array doesn't support explicit endian
+            (setv retv (.tolist (array.array "h" retv-bytes))))
+
+          ;; print result (can be any number of values)
+          (if (= (len retv) 1)
+            (print (get retv 0))
+            (let [values-str (gfor x retv (str x))]
+              (print f"(values {(.join " " values-str)})"))))
+        False None))
 
     (setv @program-state link-info)
     (print "New program-state:" :end " ")
@@ -211,7 +232,7 @@
     (let [forms (list (hy.read-many f))]
       (.eval session
              forms
-             :execute True
+             :execute "async"
              :filename filename))))
 
 ;;;
@@ -331,7 +352,7 @@
             (when (> (len batch) 0)
               (.eval session
                      [`(define (main) ~@batch)]
-                     :execute True)
+                     :execute "sync")
               (batch.clear)))
 
           (for [form forms]

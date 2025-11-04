@@ -70,6 +70,7 @@ enum {
     OP_HELLO = 'h',
     OP_BEGIN_EXEC = 'x',
     OP_SUSPEND = 's',
+    OP_STATE = 'S',
     OP_WRITE_MEM = 'w',
 };
 
@@ -96,6 +97,8 @@ struct BeginExecCmd {
     uint8_t opcode;
     uint8_t func_idx;
     uint8_t nargs;
+    uint8_t state_updates;      // this is a total kludge. the REPL should just be
+                                // able to receive state updates anytime...
 } attribute_packed;
 
 _Packed
@@ -109,6 +112,7 @@ struct WriteMemCmd {
 
 static uint8_t state = STATE_INIT;
 static uint8_t fstate = FSTATE_INIT;
+static bool send_state_updates = 0;
 static char buf[32];
 static uint8_t buf_used = 0;
 static uint8_t* write_buffer = NULL;
@@ -182,12 +186,14 @@ static void process_byte(int rc) {
                 TR(("debug: HELLO\n"));
                 static const uint8_t reply[] = {FRAME_DELIMITER, OP_HELLO, 'S', 'T', 'A', 'K', FRAME_DELIMITER};
                 listener_send(reply, sizeof(reply));
+                send_state_updates = false;
             }
             if (buf[0] == OP_SUSPEND && buf_used == 1) {
                 TR(("debug: SUSPEND\n"));
                 debug_suspend();
                 static const uint8_t reply[] = {OP_SUSPEND, FRAME_DELIMITER};
                 listener_send(reply, sizeof(reply));
+                send_state_updates = false;
             }
             else if (buf[0] == OP_BEGIN_EXEC && buf_used == sizeof(struct BeginExecCmd)) {
                 struct BeginExecCmd cmd;
@@ -198,6 +204,7 @@ static void process_byte(int rc) {
 
                 static const uint8_t reply[] = {OP_BEGIN_EXEC, FRAME_DELIMITER};
                 listener_send(reply, sizeof(reply));
+                send_state_updates = (cmd.state_updates != 0);
             }
             else {
                 TR(("debug: unrecognized op %u (%uB)\n", buf[0], buf_used));
@@ -232,6 +239,19 @@ static void process_byte(int rc) {
             // TODO: no checking of byte count?
         }
         break;
+    }
+}
+
+// callback from stak-vm.c
+void debug_on_program_completion(int retc, V const* retv) {
+    if (send_state_updates) {
+        uint8_t reply[3] = {OP_STATE, OP_SUSPEND};
+        reply[2] = retc;
+        listener_send(reply, sizeof(reply));
+        listener_send((uint8_t const*) retv, retc * sizeof(*retv));
+        const static uint8_t delim = FRAME_DELIMITER;
+        listener_send(&delim, 1);
+        send_state_updates = false;
     }
 }
 

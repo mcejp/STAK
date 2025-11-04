@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "debug.h"
 #include "periph.h"
 #include "stak-isa.h"
 #include "stak-vm.h"
@@ -214,8 +215,10 @@ void stak_exec(Module const* mod, Thread* thr) {
             thr->sp = thr->sp - CURR_FUNC.num_locals - CURR_FUNC.argc;
 
             if (thr->frame == 0) {
-                TR(("  return from main -> %d\n", ret_val));
+                TR(("  return from main -> %d value(s) (sp = %d)\n", ret_val, thr->sp));
                 thr->state = THREAD_TERMINATED;
+                // a well-formed program should always terminate with thr->sp == ret_val... I think
+                debug_on_program_completion(ret_val, &stack[thr->sp - ret_val]);
                 return;
             }
 
