@@ -245,7 +245,10 @@
 (cond
   ;; no target provided (launch our own)
   (is args.target None) (do
-    (setv process (Popen ["./vm/stak" "-g"]))
+    (setv process (Popen ["./vm/stak" "-g"]
+                         ;; prevent Ctrl-C (SIGINT) propagating to VM and killing it
+                         ;; credit to https://stackoverflow.com/questions/3232613/how-to-stop-sigint-being-passed-to-subprocess-in-python#comment55906369_3731948
+                         :preexec-fn os.setpgrp))
 
     ;; make sure interpreter doesn't outlive us
     (atexit.register process.terminate)
