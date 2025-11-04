@@ -181,8 +181,9 @@
 
       (lif builtin
         (do
-          (unless (= (len args) (get builtin "argc"))
-                  (error f"Function '{name}' expects {f.argc} arguments, but {argc} were passed"))
+          (let [expected-argc (get builtin "argc")]
+            (unless (= (len args) expected-argc)
+                    (ctx.error f"Function '{name}' expects {expected-argc} arguments, but {(len args)} were passed" expr)))
           (produces-values (get builtin "retc"))
           (ctx.emit name-sym))
         (do
