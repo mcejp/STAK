@@ -218,6 +218,15 @@
 ;;; Misc
 ;;;
 
+(defn alternative-filenames [filename]
+  ;; If file doesn't exist, try appending .scm
+  (when (not (os.path.exists filename))
+    (let [alt-filename (+ filename ".scm")]
+      (when (os.path.exists alt-filename)
+        (setv filename alt-filename))))
+
+  filename)
+
 ;; Execute callback once and then each time the file changes
 ;; Can be interrupted by an exception (e.g., KeyboardInterrupt)
 (defn watch-file [path callback]
@@ -289,11 +298,13 @@
           (.reset session))
 
         (.startswith inp "exec ") (do
-          (let [filename (.removeprefix inp "exec ")]
+          (let [filename (.removeprefix inp "exec ")
+                filename (alternative-filenames filename)]
             (execute-file session filename)))
 
         (.startswith inp "watch ") (do
-          (let [filename (.removeprefix inp "watch ")]
+          (let [filename (.removeprefix inp "watch ")
+                filename (alternative-filenames filename)]
             (try
               (watch-file filename (fn []
                 ;; source changed; reset compiler state and re-run
