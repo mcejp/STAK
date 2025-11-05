@@ -3,6 +3,7 @@
 *.bc
 *.o
 *.unit
+lnk.tmp
 
 /vm/stak
 /vm/*.exe

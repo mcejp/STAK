@@ -96,6 +96,9 @@ int main(int argc, char** argv) {
     }
 #endif
 
+    // This is not so simple, as resetting the video mode will erase any error message printed
+    //atexit(periph_shutdown);
+
     periph_init();
 
     while (thr.state != THREAD_TERMINATED || debug_mode) {

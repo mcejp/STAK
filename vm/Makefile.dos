@@ -15,6 +15,7 @@ dos-unbuf.o: dos-periph.c
 dos-dbuf.o: dos-periph.c
 	wcc $(CFLAGS) -DDOUBLEBUF=1 -fo=$@ $<
 
+# tip: use 'wdis %.o' to check generated code
 %.o: %.c
 	wcc $(CFLAGS) -fo=$@ $<
 
