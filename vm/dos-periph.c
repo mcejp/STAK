@@ -394,31 +394,22 @@ void frame_start(void) {
         // I used to distinguish extended codes for arrow keys,
         // but on the Pocket 8086 only the non-extended codes are emitted
         // (as would have been the case on a classic PC XT keyboard, I suppose)
-        switch (key & 0xff) {
+        switch (key & 0x7f) {
         case 0x0001:  // Esc
             periph_shutdown();
             exit(0);
             break;
-        case 0x001D:  // LCtrl
-        case 0x009D:
-            UPDATE_KEY(KEY_CTRL);
+
+#define HANDLE_KEY(key_name_, code_) \
+        case code_: \
+            UPDATE_KEY(key_name_);\
             break;
-        case 0x0048:
-        case 0x00C8:
-            UPDATE_KEY(KEY_UP);
-            break;
-        case 0x004B:
-        case 0x00CB:
-            UPDATE_KEY(KEY_LEFT);
-            break;
-        case 0x004D:
-        case 0x00CD:
-            UPDATE_KEY(KEY_RIGHT);
-            break;
-        case 0x0050:
-        case 0x00D0:
-            UPDATE_KEY(KEY_DOWN);
-            break;
+
+        HANDLE_KEY(KEY_CTRL,    0x001D);
+        HANDLE_KEY(KEY_UP,      0x0048);
+        HANDLE_KEY(KEY_LEFT,    0x004B);
+        HANDLE_KEY(KEY_RIGHT,   0x004D);
+        HANDLE_KEY(KEY_DOWN,    0x0050);
         }
     }
 }
